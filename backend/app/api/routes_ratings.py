@@ -82,3 +82,4 @@ def ratings_stats_all(db: Session = Depends(get_db)):
         "GROUP BY cr.course_id, oc.unique_title, oc.unique_code "
         "ORDER BY votes DESC")).mappings().all()
     return {"items": [dict(r) for r in rows]}
+
