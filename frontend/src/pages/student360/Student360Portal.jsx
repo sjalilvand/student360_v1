@@ -1,4 +1,4 @@
-// Student 360 - portal shell: role-aware. Consolidated v2 (votes menu included).
+// Student 360 - portal shell v4: 3 roles + dynamic permission-filtered menus.
 import { useEffect, useState } from "react";
 import { getReminders } from "../../api/student360Api";
 import LoginPage from "./LoginPage";
@@ -8,16 +8,15 @@ import StudyPathPage from "./StudyPathPage";
 import AdaptiveQuizPage from "./AdaptiveQuizPage";
 import CareerPage from "./CareerPage";
 import TwinPage from "./TwinPage";
-import StudentFeedbackHub from "./StudentFeedbackHub";
 import VoteManagement from "../VoteManagement";
-import { ProfessorDashboardPage, ProfessorProposalsPage,
-  ProfessorAvailabilityPage, ProfessorPasswordPage } from "./ProfessorPortalPages";
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
   GraphExplorerPage,
 } from "./StaffPages";
 import { AccessControlPage } from "./AccessControlPage";
+import { ProfessorDashboardPage, ProfessorProposalsPage,
+  ProfessorAvailabilityPage, ProfessorPasswordPage } from "./ProfessorPortalPages";
 import { track, trackPage } from "../../utils/eventTracker";
 import {
   ProfilePage, RegulationsPage, GuidesPage, SelectionPage,
@@ -39,7 +38,6 @@ const STUDENT_MENU = [
   { id: "adaptivequiz", icon: "🎯", label: "کوییز تطبیقی (AI)" },
   { id: "professor", icon: "🤖", label: "استاد هوشمند" },
   { id: "career", icon: "💼", label: "پروفایل شغلی" },
-  { id: "votes", icon: "🗳", label: "نظرسنجی دروس" },
   { id: "twin", icon: "🧊", label: "شبیه‌ساز چه می‌شود اگر" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
@@ -52,8 +50,8 @@ const STAFF_MENU = [
   { id: "interventions", icon: "🚨", label: "مداخله‌های حمایتی" },
   { id: "feedback", icon: "💬", label: "کیفیت پاسخ‌ها" },
   { id: "graph", icon: "🕸", label: "گراف دروس" },
-  { id: "access", icon: "🎛", label: "کنترل دسترسی" },
   { id: "votes", icon: "🗳", label: "نظرسنجی دروس" },
+  { id: "access", icon: "🎛", label: "کنترل دسترسی" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
@@ -65,13 +63,12 @@ const PROF_MENU = [
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
-function isProfRole(role) {
-  return (role || "").toLowerCase().includes("professor");
-}
-
 function isStaffRole(role) {
   const r = (role || "").toLowerCase();
   return r.includes("expert") || r.includes("staff") || r.includes("admin") || r.includes("manager");
+}
+function isProfRole(role) {
+  return (role || "").toLowerCase().includes("professor");
 }
 
 export default function Student360Portal({ onExit }) {
@@ -81,27 +78,31 @@ export default function Student360Portal({ onExit }) {
   });
   const prof = isProfRole(user?.role);
   const staff = isStaffRole(user?.role);
-  const BASE_MENU = prof ? PROF_MENU : (staff ? STAFF_MENU : STUDENT_MENU);
+  const roleKey = prof ? "professor" : staff ? "staff" : "student";
+
+  // allowed menus MUST be declared before MENU (fixes TDZ ReferenceError)
+  const [allowedMenus, setAllowedMenus] = useState(null);
+
+  const BASE_MENU = prof ? PROF_MENU : staff ? STAFF_MENU : STUDENT_MENU;
   const MENU = allowedMenus
     ? BASE_MENU.filter((m) => allowedMenus.includes(m.id))
     : BASE_MENU;
-  const [page, setPage] = useState(prof ? "profdash" : (staff ? "overview" : "profile"));
+
+  const [page, setPage] = useState(prof ? "profdash" : staff ? "overview" : "profile");
   const [reminders, setReminders] = useState(0);
-  const [allowedMenus, setAllowedMenus] = useState(null); // null = no restriction loaded
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`http://127.0.0.1:8000/api/permissions/menu/${roleKey}`)
+      .then((r) => r.json())
+      .then((j) => setAllowedMenus(j.menus || null))
+      .catch(() => setAllowedMenus(null));
+  }, [user, roleKey]);
 
   useEffect(() => {
     if (!user || staff) return;
     getReminders().then((r) => setReminders(r.length)).catch(() => {});
   }, [user, page, staff]);
-
-  useEffect(() => {
-    if (!user) return;
-    const roleKey = prof ? "professor" : staff ? "staff" : "student";
-    fetch(`${"http://127.0.0.1:8000"}/api/permissions/menu/${roleKey}`)
-      .then((r) => r.json())
-      .then((j) => setAllowedMenus(j.menus || null))
-      .catch(() => setAllowedMenus(null));
-  }, [user, prof, staff]);
 
   useEffect(() => {
     if (user) trackPage((prof ? "prof:" : staff ? "staff:" : "student:") + page);
@@ -130,8 +131,8 @@ export default function Student360Portal({ onExit }) {
     interventions: <StaffInterventionsPage />,
     feedback: <StaffFeedbackPage />,
     graph: <GraphExplorerPage />,
-    access: <AccessControlPage />,
     votes: <VoteManagement />,
+    access: <AccessControlPage />,
     ai: <AiAssistantPage />,
   };
   const studentPages = {
@@ -149,10 +150,9 @@ export default function Student360Portal({ onExit }) {
     professor: <ProfessorPage />,
     career: <CareerPage />,
     twin: <TwinPage />,
-    votes: <StudentFeedbackHub />,
     ai: <AiAssistantPage />,
   };
-  const pages = prof ? profPages : (staff ? staffPages : studentPages);
+  const pages = prof ? profPages : staff ? staffPages : studentPages;
   const displayName = localStorage.getItem("s360_display_name") || user.username;
 
   return (
@@ -185,7 +185,7 @@ export default function Student360Portal({ onExit }) {
       </aside>
       <main className="s360-main">
         <header className="s360-header">
-          <h1>{MENU.find((m) => m.id === page)?.label}</h1>
+          <h1>{MENU.find((m) => m.id === page)?.label || "..."}</h1>
         </header>
         <div className="s360-content">{pages[page]}</div>
       </main>
