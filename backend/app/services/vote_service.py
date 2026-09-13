@@ -28,6 +28,7 @@ class VoteService:
             CourseVote.student_id == student_id,
             CourseVote.course_id == vote_data.course_id,
             CourseVote.term == vote_data.term
+            CourseVote.vote_type == vote_type,
         ).first()
         if existing:
             raise HTTPException(status_code=400, detail="You have already voted for this course this term")
