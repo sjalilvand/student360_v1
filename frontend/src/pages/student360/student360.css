@@ -482,3 +482,26 @@
 .twin-metric > span:first-child { width: 11rem; color: #475569; }
 .twin-vals { flex: 1; text-align: center; }
 .twin-after { width: 4.5rem; text-align: left; }
+
+/* Feedback Hub v2 */
+.hub-picker { position: relative; }
+.hub-picker > input { width: 100%; padding: .6rem .8rem; border-radius: 10px;
+  border: 1.5px solid #d1d5db; font-family: inherit; font-size: .95rem; }
+.hub-list { position: absolute; top: 105%; inset-inline: 0; z-index: 50;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  max-height: 260px; overflow-y: auto; box-shadow: 0 12px 30px rgba(15,23,42,.12); }
+.hub-item { padding: .55rem .8rem; cursor: pointer; font-size: .9rem; border-bottom: 1px solid #f1f5f9; }
+.hub-item:hover { background: #eef2ff; }
+.hub-empty { padding: .8rem; color: #94a3b8; text-align: center; }
+.hub-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .6rem; }
+.hub-btn { border: none; border-radius: 10px; padding: .65rem 1.1rem; cursor: pointer;
+  font-family: inherit; font-weight: 700; color: #fff; }
+.hub-btn.like { background: #22c55e; }
+.hub-btn.req { background: #3b82f6; }
+.hub-btn:disabled { opacity: .55; cursor: wait; }
+.hub-ok { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;
+  border-radius: 10px; padding: .6rem .9rem; margin: .6rem 0; }
+
+/* strong tab contrast (override) */
+.s360-tabs-row button { background: #fff; color: #334155; border: 1.5px solid #cbd5e1; }
+.s360-tabs-row button.active { background: #4f46e5; border-color: #4338ca; color: #fff; }
