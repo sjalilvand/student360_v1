@@ -12,6 +12,10 @@ from app.services import behavioral_service as bs
 from app.services import event_tracking_service as ets
 from app.services.risk_service import _gpa_band_score, _trend_score
 from app.services.skills_service import keyword_skills
+try:
+    from app.services import knowledge_graph_service as kg
+except Exception:
+    kg = None
 from app.services.study_path_service import _max_units
 
 DISCLAIMER = ("⚠️ نتیجه شبیه‌سازی اولیه و غیرقطعی است؛ صرفاً برای برنامه‌ریزی است "
@@ -158,6 +162,14 @@ def simulate(db: Session, sn: str, courses=None, units=None, avg_grade=None) -> 
     skill_preview = {}
     for c in sim:
         sk = keyword_skills(c["title"])
+        if not sk and kg is not None:
+            # graph fallback: match by title then cluster skills
+            try:
+                cl = kg.course_cluster(db, c["title"])
+                if not cl.get("error"):
+                    sk = cl.get("skills") or []
+            except Exception:
+                sk = []
         if sk:
             skill_preview[c["title"]] = sk
 
