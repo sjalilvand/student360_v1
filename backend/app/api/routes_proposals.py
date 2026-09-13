@@ -4,6 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.models.course_proposal import CourseProposal
 from app.schemas.course_proposal import CourseProposalCreate, CourseProposalResponse
 from app.services.proposal_service import ProposalService
 
@@ -15,6 +16,22 @@ def create_proposal(
     student_id: int,
     db: Session = Depends(get_db)
 ):
+
+    _dup_ids = set()
+    for _p in db.query(CourseProposal).filter(
+        CourseProposal.student_id == student_id,
+        CourseProposal.term == proposal.term,
+    ).all():
+        try:
+            _dup_ids |= set(json.loads(_p.course_ids or "[]"))
+        except Exception:
+            pass
+    _overlap = sorted(set(proposal.course_ids or []) & _dup_ids)
+    if _overlap:
+        raise HTTPException(
+            status_code=409,
+            detail=f"شما برای این درس(ها) در این ترم قبلاً پیشنهاد ثبت کرده‌اید (کد: {_overlap})",
+        )
     service = ProposalService(db)
     return service.create_proposal(student_id, proposal)
 
@@ -85,6 +102,16 @@ def proposals_mine(x_student_number: str = Header(default=None),
         d["courses_display"] = "، ".join(d["course_titles"]) if d["course_titles"] else "-"
         items.append(d)
     return {"items": items}
+
+
+@router.get("/course-options")
+def proposals_course_options(db: Session = Depends(get_db)):
+    """Single source of truth for pickers: offered_courses (id/code/title)."""
+    rows = db.execute(text(
+        "SELECT id, unique_code AS code, unique_title AS title "
+        "FROM offered_courses WHERE is_active = 1 "
+        "ORDER BY unique_title")).mappings().all()
+    return {"items": [dict(r) for r in rows]}
 
 @router.get("/{proposal_id}", response_model=CourseProposalResponse)
 def get_proposal(proposal_id: int, db: Session = Depends(get_db)):

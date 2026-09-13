@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
+from app.models.course_vote import CourseVote
 from app.schemas.course_vote import CourseVoteCreate, CourseVoteResponse
 from app.services.vote_service import VoteService
 
@@ -15,6 +16,18 @@ def create_vote(
     student_id: int,
     db: Session = Depends(get_db)
 ):
+
+    _dup = db.query(CourseVote).filter(
+        CourseVote.student_id == student_id,
+        CourseVote.course_id == vote.course_id,
+        CourseVote.term == vote.term,
+        CourseVote.vote_type == vote.vote_type,
+    ).first()
+    if _dup:
+        raise HTTPException(
+            status_code=409,
+            detail="شما قبلاً همین رأی را برای این درس در این ترم ثبت کرده‌اید",
+        )
     """دانشجو به یک درس رأی می‌دهد (لایک یا درخواست ارائه)"""
     service = VoteService(db)
     return service.create_vote(student_id, vote)

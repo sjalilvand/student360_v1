@@ -32,7 +32,7 @@ export default function StudentFeedbackHub() {
 
   // courses
   useEffect(() => {
-    fetch(`${API_BASE}/api/courses/unique`, { headers: HEADERS() })
+    fetch(`${API_BASE}/api/proposals/course-options`, { headers: HEADERS() })
       .then((r) => r.json())
       .then((d) => {
         const arr = Array.isArray(d) ? d : (d.items || d.courses || []);
