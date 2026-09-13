@@ -9,24 +9,40 @@ from app.services import llm_client as lc
 from app.services import rag_service as rag
 
 
+def _clean_text(s):
+    """Lowercase + remove ALL invisible/bidi marks (ZWNJ, ZWSP, LRM, RLM, BOM)."""
+    s = (s or "").lower()
+    for ch in ("\u200b", "\u200c", "\u200e", "\u200f", "\ufeff"):
+        s = s.replace(ch, "")
+    return " ".join(s.split())
+
+
 def _graph_hint(db, question):
     """If question mentions a course (title/code), attach its graph cluster."""
     try:
         from app.services import knowledge_graph_service as kg
         from sqlalchemy import text as _t
-        q = (question or "").lower().replace("\u200c", " ")
+        q = _clean_text(question)
         row = db.execute(_t(
             "SELECT unique_code, unique_title FROM offered_courses")).mappings().all()
-        hit = None
+        hit, best_ov = None, 0.0
         for r in row:
-            t = str(r["unique_title"] or "").strip().lower().replace("\u200c", " ")
+            t = _clean_text(r["unique_title"])
             c = str(r["unique_code"] or "").strip()
+            if not t:
+                continue
             toks = [w for w in t.split() if len(w) >= 4]
-            _overlap = (sum(1 for w in toks if w in q) / len(toks)) if toks else 0
-            if t and (t in q or (c and len(c) >= 4 and c in q)
-                      or _overlap >= 0.5):
-                hit = c
+            ov = (sum(1 for w in toks if w in q) / len(toks)) if toks else 0
+            if t in q:                       # full clean title in question: definitive
+                hit, best_ov = c, 1.0
                 break
+            if c and len(c) >= 4 and c in q and best_ov < 0.95:
+                hit, best_ov = c, 0.95       # code mentioned
+                continue
+            if ov > best_ov:                 # otherwise keep the BEST overlap
+                hit, best_ov = c, ov
+        if hit is not None and best_ov < 0.5:
+            hit = None                       # too weak - no hint
         if not hit:
             return ""
         cl = kg.course_cluster(db, hit)
