@@ -37,8 +37,8 @@ def active_polls(survey_type: str = "request", term: str = "1405-1",
 
     sql = text("""
         SELECT vp.course_id AS course_id,
-        COALESCE(uc.unified_name, '') AS title,
-        COALESCE(uc.unified_code, '') AS code,
+        COALESCE(uc.title, '') AS title,
+        COALESCE(uc.code, '') AS code,
         COALESCE(uc.estimated_capacity, 0) AS capacity,
         SUM(CASE WHEN cv.vote_type = 'request' THEN 1 ELSE 0 END) AS requests,
         MAX(CASE WHEN cv.student_id = :sid THEN 1 ELSE 0 END) AS my_request
@@ -48,7 +48,7 @@ def active_polls(survey_type: str = "request", term: str = "1405-1",
           AND cv.term = vp.term AND cv.vote_type = 'request'
           AND cv.student_id = COALESCE(:sid, -1)
         WHERE vp.is_active = 1 AND vp.survey_type = :st AND vp.term = :t
-        GROUP BY vp.course_id, uc.unified_name, uc.unified_code,
+        GROUP BY vp.course_id, uc.title, uc.code,
         uc.estimated_capacity, vp.term
         ORDER BY requests DESC
     """)
