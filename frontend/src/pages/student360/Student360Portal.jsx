@@ -17,7 +17,6 @@ import {
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
   GraphExplorerPage, AccessControlPage,
 } from "./StaffPages";
-import AccessControlPage from "./AccessControlPage";
 import { track, trackPage } from "../../utils/eventTracker";
 import {
   ProfilePage, RegulationsPage, GuidesPage, SelectionPage,

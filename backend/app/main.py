@@ -26,6 +26,7 @@ from app.api import test_report
 from app.api.routes_student360 import router as student360_router
 from app.data.seed_student360 import seed_student360
 from app.core.database import SessionLocal
+from app.services.permission_service import ensure_seeded as _ensure_perms
 
 # تنظیم لاگر
 logging.basicConfig(level=logging.INFO)
@@ -89,6 +90,11 @@ async def lifespan(app: FastAPI):
             logger.info("✅ داده‌های اولیه دانشجو ۳۶۰ آماده شد.")
         except Exception as e:
             logger.warning(f"⚠️ seed دانشجو ۳۶۰: {e}")
+        try:
+            _nc = _ensure_perms()
+            logger.info(f"✅ permissions seeded: {_nc} rows")
+        except Exception as _pe:
+            logger.warning(f"⚠️ permissions seed: {_pe}")
 
     except Exception as e:
         logger.error(f"❌ خطا در مقداردهی دیتابیس: {e}")

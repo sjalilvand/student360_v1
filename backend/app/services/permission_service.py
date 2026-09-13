@@ -30,11 +30,13 @@ def seed_defaults(db):
 
 
 def menu_for_role(db, role: str):
+    any_rows = db.query(SysPermission).filter(
+        SysPermission.role == str(role)).count()
     rows = (db.query(SysPermission)
             .filter(SysPermission.role == str(role),
                     SysPermission.enabled == True)  # noqa: E712
             .all())
-    if not rows:
+    if not any_rows:
         return {"role": role, "menus": DEFAULT_MENUS.get(role, []),
                 "source": "default"}
     return {"role": role,
