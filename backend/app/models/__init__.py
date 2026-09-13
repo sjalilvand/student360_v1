@@ -53,3 +53,7 @@ from app.models.skills import StuCourseSkill
 
 # ===== Feedback Insights (Phase 2) =====
 from app.models.feedback_insight import StuFeedbackInsight
+from app.models.vote_poll import VotePoll
+from app.models.course_vote import CourseVote
+from app.models.course_proposal import CourseProposal
+from app.models.course_rating import CourseRating
