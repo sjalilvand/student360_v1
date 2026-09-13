@@ -23,6 +23,7 @@ _INVISIBLE = ("\u200b", "\u200c", "\u200e", "\u200f", "\ufeff")
 
 def _clean(s):
     s = (s or "").lower()
+    s = s.replace("\u064a", "\u06cc").replace("\u0643", "\u06a9")
     for ch in _INVISIBLE:
         s = s.replace(ch, "")
     return " ".join(s.split())
@@ -53,39 +54,25 @@ def _user_by_request(request: Request, db: Session):
         return None
 
 
-def _resolve_instructor_code(db: Session, username: str, display_name: str):
-    """Resolve this professor's instructor_code (links to prefs tables)."""
-    q = _clean(username)
+def _resolve_instructor_code(db: Session, username: str, display_name: str,
+                             ref_id=None):
+    """teaching_preferences.instructor_code == old professors.id == ref_id."""
+    if ref_id:
+        return str(ref_id)
+    # fallbacks (no ref_id): username, then cleaned-name match
     row = db.execute(text(
         "SELECT instructor_code FROM teaching_preferences "
         "WHERE instructor_username = :u LIMIT 1"), {"u": username}).first()
     if row:
         return row[0]
-    row = db.execute(text(
-        "SELECT instructor_code FROM time_preferences "
-        "WHERE instructor_username = :u LIMIT 1"), {"u": username}).first()
-    if row:
-        return row[0]
-    row = db.execute(text(
-        "SELECT code FROM instructors WHERE username = :u LIMIT 1"), {"u": username}).first()
-    if row:
-        return row[0]
     nm = _clean(display_name)
     for sql in (
-        "SELECT code FROM instructors",
-        "SELECT DISTINCT instructor_code AS code FROM teaching_preferences",
-        "SELECT DISTINCT instructor_code AS code FROM time_preferences",
+        "SELECT code, name FROM instructors",
+        "SELECT DISTINCT instructor_code AS code, instructor_name AS name "
+        "FROM teaching_preferences",
+        "SELECT DISTINCT instructor_code AS code, instructor_name AS name "
+        "FROM time_preferences",
     ):
-        for r in db.execute(text(sql)).all():
-            if r[0] and _clean(str(r[0])) :
-                continue
-        # name-based scan with cleaning
-        for r in db.execute(text(sql.replace("code FROM", "code AS code, name AS __n FROM" if "instructors" in sql else "code, instructor_name AS __n FROM"))).all():
-            pass
-    # simple name scan (cleaned compare in Python)
-    for sql, col in (("SELECT code, name FROM instructors", "name"),
-                     ("SELECT DISTINCT instructor_code AS code, instructor_name AS name FROM teaching_preferences", "name"),
-                     ("SELECT DISTINCT instructor_code AS code, instructor_name AS name FROM time_preferences", "name")):
         for r in db.execute(text(sql)).all():
             if r[0] and _clean(r[1]) == nm:
                 return r[0]
@@ -96,7 +83,7 @@ def _require_user(request: Request, db: Session):
     u = _user_by_request(request, db)
     if not u:
         raise HTTPException(status_code=401, detail="نشست نامعتبر است")
-    code = _resolve_instructor_code(db, u["username"], u["display_name"])
+    code = _resolve_instructor_code(db, u["username"], u["display_name"], u["ref_id"])
     return u, code
 
 
