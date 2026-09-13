@@ -371,3 +371,10 @@ try:
     app.include_router(professor_portal_router)
 except Exception as _pp_err:
     print(f"WARNING: professor portal router failed: {_pp_err}")
+
+# ===== Access Control Panel (auto-added) =====
+try:
+    from app.api.routes_permissions import router as permissions_router
+    app.include_router(permissions_router, tags=["Access Control"])
+except Exception as _perm_err:
+    print(f"WARNING: permissions router failed: {_perm_err}")

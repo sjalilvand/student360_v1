@@ -57,3 +57,6 @@ from app.models.vote_poll import VotePoll
 from app.models.course_vote import CourseVote
 from app.models.course_proposal import CourseProposal
 from app.models.course_rating import CourseRating
+
+# ===== Permissions (Access Control) =====
+from app.models.permission import SysPermission

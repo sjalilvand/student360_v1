@@ -15,8 +15,9 @@ import { ProfessorDashboardPage, ProfessorProposalsPage,
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
-  GraphExplorerPage,
+  GraphExplorerPage, AccessControlPage,
 } from "./StaffPages";
+import AccessControlPage from "./AccessControlPage";
 import { track, trackPage } from "../../utils/eventTracker";
 import {
   ProfilePage, RegulationsPage, GuidesPage, SelectionPage,
@@ -51,6 +52,7 @@ const STAFF_MENU = [
   { id: "interventions", icon: "🚨", label: "مداخله‌های حمایتی" },
   { id: "feedback", icon: "💬", label: "کیفیت پاسخ‌ها" },
   { id: "graph", icon: "🕸", label: "گراف دروس" },
+  { id: "access", icon: "🎛", label: "کنترل دسترسی" },
   { id: "votes", icon: "🗳", label: "نظرسنجی دروس" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
@@ -79,14 +81,27 @@ export default function Student360Portal({ onExit }) {
   });
   const prof = isProfRole(user?.role);
   const staff = isStaffRole(user?.role);
-  const MENU = prof ? PROF_MENU : (staff ? STAFF_MENU : STUDENT_MENU);
+  const BASE_MENU = prof ? PROF_MENU : (staff ? STAFF_MENU : STUDENT_MENU);
+  const MENU = allowedMenus
+    ? BASE_MENU.filter((m) => allowedMenus.includes(m.id))
+    : BASE_MENU;
   const [page, setPage] = useState(prof ? "profdash" : (staff ? "overview" : "profile"));
   const [reminders, setReminders] = useState(0);
+  const [allowedMenus, setAllowedMenus] = useState(null); // null = no restriction loaded
 
   useEffect(() => {
     if (!user || staff) return;
     getReminders().then((r) => setReminders(r.length)).catch(() => {});
   }, [user, page, staff]);
+
+  useEffect(() => {
+    if (!user) return;
+    const roleKey = prof ? "professor" : staff ? "staff" : "student";
+    fetch(`${"http://127.0.0.1:8000"}/api/permissions/menu/${roleKey}`)
+      .then((r) => r.json())
+      .then((j) => setAllowedMenus(j.menus || null))
+      .catch(() => setAllowedMenus(null));
+  }, [user, prof, staff]);
 
   useEffect(() => {
     if (user) trackPage((prof ? "prof:" : staff ? "staff:" : "student:") + page);
@@ -115,6 +130,7 @@ export default function Student360Portal({ onExit }) {
     interventions: <StaffInterventionsPage />,
     feedback: <StaffFeedbackPage />,
     graph: <GraphExplorerPage />,
+    access: <AccessControlPage />,
     votes: <VoteManagement />,
     ai: <AiAssistantPage />,
   };

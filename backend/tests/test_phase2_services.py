@@ -396,3 +396,19 @@ def test_tehran_tz_helper():
     utc = datetime(2026, 9, 12, 20, 30)
     teh = _to_tehran(utc)
     assert teh.day == 13 and teh.hour == 0 and teh.minute == 0
+
+
+def test_permissions_seed_and_toggle(env):
+    db, _ = env
+    from app.services import permission_service as ps
+    created = ps.seed_defaults(db)
+    assert created > 0
+    m = ps.menu_for_role(db, "student")
+    assert "profile" in m["menus"]
+    assert ps.set_enabled(db, "student", "profile", False)
+    m2 = ps.menu_for_role(db, "student")
+    assert "profile" not in m2["menus"]
+    assert ps.set_enabled(db, "student", "profile", True)
+    assert ps.reset_role(db, "student")
+    assert "profile" in ps.menu_for_role(db, "student")["menus"]
+    assert not ps.set_enabled(db, "bogus", "x", True)
