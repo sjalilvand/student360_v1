@@ -22,7 +22,9 @@ def _graph_hint(db, question):
             t = str(r["unique_title"] or "").strip().lower().replace("\u200c", " ")
             c = str(r["unique_code"] or "").strip()
             toks = [w for w in t.split() if len(w) >= 4]
-            if t and (t in q or (c and c in q) or (toks and all(w in q for w in toks))):
+            _overlap = (sum(1 for w in toks if w in q) / len(toks)) if toks else 0
+            if t and (t in q or (c and len(c) >= 4 and c in q)
+                      or _overlap >= 0.5):
                 hit = c
                 break
         if not hit:
