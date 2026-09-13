@@ -54,3 +54,9 @@ backend/_*.py
 _trash_*/
 
 *.statsbak
+
+*.premigrate
+*.delbak
+*.meidbak
+*.prefixbak
+*.bakviz
