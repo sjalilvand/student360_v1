@@ -10,6 +10,8 @@ import CareerPage from "./CareerPage";
 import TwinPage from "./TwinPage";
 import StudentFeedbackHub from "./StudentFeedbackHub";
 import VoteManagement from "../VoteManagement";
+import { ProfessorDashboardPage, ProfessorProposalsPage,
+  ProfessorAvailabilityPage, ProfessorPasswordPage } from "./ProfessorPortalPages";
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
@@ -53,6 +55,18 @@ const STAFF_MENU = [
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
+const PROF_MENU = [
+  { id: "profdash", icon: "👨‍🏫", label: "پورتال استاد" },
+  { id: "profproposals", icon: "📝", label: "پیشنهاد دروس من" },
+  { id: "profavail", icon: "🗓️", label: "دسترس‌بازی من" },
+  { id: "profpass", icon: "🔑", label: "تغییر رمز عبور" },
+  { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
+];
+
+function isProfRole(role) {
+  return (role || "").toLowerCase().includes("professor");
+}
+
 function isStaffRole(role) {
   const r = (role || "").toLowerCase();
   return r.includes("expert") || r.includes("staff") || r.includes("admin") || r.includes("manager");
@@ -63,9 +77,10 @@ export default function Student360Portal({ onExit }) {
     const sn = localStorage.getItem("s360_student_number");
     return sn ? { username: sn, role: localStorage.getItem("s360_role") || "" } : null;
   });
+  const prof = isProfRole(user?.role);
   const staff = isStaffRole(user?.role);
-  const MENU = staff ? STAFF_MENU : STUDENT_MENU;
-  const [page, setPage] = useState(staff ? "overview" : "profile");
+  const MENU = prof ? PROF_MENU : (staff ? STAFF_MENU : STUDENT_MENU);
+  const [page, setPage] = useState(prof ? "profdash" : (staff ? "overview" : "profile"));
   const [reminders, setReminders] = useState(0);
 
   useEffect(() => {
@@ -74,8 +89,8 @@ export default function Student360Portal({ onExit }) {
   }, [user, page, staff]);
 
   useEffect(() => {
-    if (user) trackPage((staff ? "staff:" : "student:") + page);
-  }, [page, user, staff]);
+    if (user) trackPage((prof ? "prof:" : staff ? "staff:" : "student:") + page);
+  }, [page, user, prof, staff]);
 
   if (!user) return <LoginPage onLogin={setUser} />;
 
@@ -85,6 +100,13 @@ export default function Student360Portal({ onExit }) {
     setUser(null);
   }
 
+  const profPages = {
+    profdash: <ProfessorDashboardPage />,
+    profproposals: <ProfessorProposalsPage />,
+    profavail: <ProfessorAvailabilityPage />,
+    profpass: <ProfessorPasswordPage />,
+    ai: <AiAssistantPage />,
+  };
   const staffPages = {
     overview: <StaffOverviewPage />,
     students: <StaffStudentsPage />,
@@ -114,17 +136,17 @@ export default function Student360Portal({ onExit }) {
     votes: <StudentFeedbackHub />,
     ai: <AiAssistantPage />,
   };
-  const pages = staff ? staffPages : studentPages;
+  const pages = prof ? profPages : (staff ? staffPages : studentPages);
   const displayName = localStorage.getItem("s360_display_name") || user.username;
 
   return (
     <div className="s360-portal">
       <aside className="s360-sidebar">
         <div className="s360-logo">
-          <span className="s360-logo-icon">{staff ? "👨‍💼" : "🎓"}</span>
+          <span className="s360-logo-icon">{prof ? "👨‍🏫" : staff ? "👨‍💼" : "🎓"}</span>
           <div>
-            <h2>{staff ? "میز کار کارشناس" : "دانشجو ۳۶۰"}</h2>
-            <p>{staff ? "پنل آموزش" : "سامانه خدمات دانشجویی"}</p>
+            <h2>{prof ? "پورتال استاد" : staff ? "میز کار کارشناس" : "دانشجو ۳۶۰"}</h2>
+            <p>{prof ? "پنل اساتید" : staff ? "پنل آموزش" : "سامانه خدمات دانشجویی"}</p>
           </div>
         </div>
         <nav className="s360-nav">
