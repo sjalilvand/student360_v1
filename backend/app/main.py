@@ -363,3 +363,11 @@ try:
     app.include_router(ratings_router, prefix="/api", tags=["Ratings"])
 except Exception as _rt_err:
     print(f"WARNING: ratings router failed: {_rt_err}")
+
+
+# ===== Professor Portal (Phase B1 - auto-added) =====
+try:
+    from app.api.routes_professor_portal import router as professor_portal_router
+    app.include_router(professor_portal_router)
+except Exception as _pp_err:
+    print(f"WARNING: professor portal router failed: {_pp_err}")
