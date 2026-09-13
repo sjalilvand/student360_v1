@@ -52,3 +52,5 @@ start_and_test.ps1
 backend/_*.py
 *.bak*
 _trash_*/
+
+*.statsbak
