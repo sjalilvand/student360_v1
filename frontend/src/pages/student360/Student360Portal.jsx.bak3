@@ -1,4 +1,5 @@
-// Student 360 - portal shell: role-aware. FINAL consolidated (all menus).
+// Student 360 - portal shell: role-aware (student portal vs staff workspace).
+// Final consolidated version: all menus (no more incremental patches).
 import { useEffect, useState } from "react";
 import { getReminders } from "../../api/student360Api";
 import LoginPage from "./LoginPage";
@@ -7,11 +8,9 @@ import BehaviorPage from "./BehaviorPage";
 import StudyPathPage from "./StudyPathPage";
 import AdaptiveQuizPage from "./AdaptiveQuizPage";
 import CareerPage from "./CareerPage";
-import TwinPage from "./TwinPage";
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
-  GraphExplorerPage,
 } from "./StaffPages";
 import { track, trackPage } from "../../utils/eventTracker";
 import {
@@ -32,9 +31,8 @@ const STUDENT_MENU = [
   { id: "alerts", icon: "🔔", label: "هشدارها" },
   { id: "quiz", icon: "🧪", label: "کوییز هوشمند" },
   { id: "adaptivequiz", icon: "🎯", label: "کوییز تطبیقی (AI)" },
-  { id: "professor", icon: "🤖", label: "استاد هوشمند" },
   { id: "career", icon: "💼", label: "پروفایل شغلی" },
-  { id: "twin", icon: "🧊", label: "شبیه‌ساز چه می‌شود اگر" },
+  { id: "professor", icon: "🤖", label: "استاد هوشمند" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
@@ -44,8 +42,6 @@ const STAFF_MENU = [
   { id: "engagement", icon: "📈", label: "تعامل دانشجویان" },
   { id: "risk", icon: "⚠️", label: "هشدار ریسک تحصیلی" },
   { id: "interventions", icon: "🚨", label: "مداخله‌های حمایتی" },
-  { id: "feedback", icon: "💬", label: "کیفیت پاسخ‌ها" },
-  { id: "graph", icon: "🕸", label: "گراف دروس" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
@@ -87,8 +83,6 @@ export default function Student360Portal({ onExit }) {
     engagement: <StaffEngagementPage />,
     risk: <StaffRiskPage />,
     interventions: <StaffInterventionsPage />,
-    feedback: <StaffFeedbackPage />,
-    graph: <GraphExplorerPage />,
     ai: <AiAssistantPage />,
   };
   const studentPages = {
@@ -103,9 +97,8 @@ export default function Student360Portal({ onExit }) {
     alerts: <AlertsPage />,
     quiz: <QuizPage />,
     adaptivequiz: <AdaptiveQuizPage />,
-    professor: <ProfessorPage />,
     career: <CareerPage />,
-    twin: <TwinPage />,
+    professor: <ProfessorPage />,
     ai: <AiAssistantPage />,
   };
   const pages = staff ? staffPages : studentPages;
@@ -148,3 +141,6 @@ export default function Student360Portal({ onExit }) {
     </div>
   );
 }
+
+
+
