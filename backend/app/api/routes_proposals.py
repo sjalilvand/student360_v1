@@ -1,3 +1,4 @@
+import json
 from fastapi import Header, APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -36,8 +37,54 @@ def proposals_all(db: Session = Depends(get_db)):
         "FROM course_proposals p "
         "LEFT JOIN stu_students s ON s.id = p.student_id "
         "ORDER BY p.created_at DESC LIMIT 200")).mappings().all()
-    return {"items": [dict(r) for r in rows]}
+    cmap = {r["id"]: f"{r['unique_title']} ({r['unique_code']})"
+            for r in db.execute(text(
+                "SELECT id, unique_code, unique_title FROM offered_courses")).mappings().all()}
+    items = []
+    for r in rows:
+        d = dict(r)
+        try:
+            ids = json.loads(d.get("course_ids") or "[]")
+        except Exception:
+            ids = []
+        d["course_titles"] = [cmap.get(int(c), "#" + str(c)) for c in ids
+                              if str(c).lstrip("-").isdigit()]
+        d["courses_display"] = "، ".join(d["course_titles"]) if d["course_titles"] else "-"
+        items.append(d)
+    return {"items": items}
 
+
+
+@router.get("/mine")
+def proposals_mine(x_student_number: str = Header(default=None),
+                   db: Session = Depends(get_db)):
+    """My proposals with resolved course titles (student view)."""
+    if not x_student_number:
+        raise HTTPException(status_code=422, detail="X-Student-Number required")
+    stu = db.execute(text(
+        "SELECT id FROM stu_students WHERE student_number = :sn"),
+        {"sn": str(x_student_number).strip()}).first()
+    if not stu:
+        return {"items": []}
+    rows = db.execute(text(
+        "SELECT id, term, course_ids, description, status, created_at "
+        "FROM course_proposals WHERE student_id = :sid "
+        "ORDER BY created_at DESC LIMIT 50"), {"sid": stu[0]}).mappings().all()
+    cmap = {r["id"]: f"{r['unique_title']} ({r['unique_code']})"
+            for r in db.execute(text(
+                "SELECT id, unique_code, unique_title FROM offered_courses")).mappings().all()}
+    items = []
+    for r in rows:
+        d = dict(r)
+        try:
+            ids = json.loads(d.get("course_ids") or "[]")
+        except Exception:
+            ids = []
+        d["course_titles"] = [cmap.get(int(c), "#" + str(c)) for c in ids
+                              if str(c).lstrip("-").isdigit()]
+        d["courses_display"] = "، ".join(d["course_titles"]) if d["course_titles"] else "-"
+        items.append(d)
+    return {"items": items}
 
 @router.get("/{proposal_id}", response_model=CourseProposalResponse)
 def get_proposal(proposal_id: int, db: Session = Depends(get_db)):

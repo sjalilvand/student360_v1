@@ -9,6 +9,7 @@ const HEADERS = () => ({
   "Content-Type": "application/json",
 });
 const TERMS = ["1405-1", "1404-2", "1404-1"];
+const ST_MAP = { pending: "در انتظار بررسی", approved: "تایید شده", rejected: "رد شده" };
 
 export default function StudentFeedbackHub() {
   const [tab, setTab] = useState("vote");
@@ -23,6 +24,11 @@ export default function StudentFeedbackHub() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [statsKey, setStatsKey] = useState(0);
+  const [mine, setMine] = useState(null);
+  useEffect(() => {
+    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
+      .then((r) => r.json()).then((j) => setMine(j.items || [])).catch(() => setMine([]));
+  }, [statsKey]);
 
   // courses
   useEffect(() => {
@@ -160,6 +166,29 @@ export default function StudentFeedbackHub() {
         </Card>
       )}
 
+
+      {tab === "proposal" && mine && (
+        <Card title="📋 پیشنهادهای من">
+          {mine.length === 0 ? (
+            <p className="s360-hint">هنوز پیشنهادی ثبت نکرده‌اید.</p>
+          ) : (
+            <table className="s360-table">
+              <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th></tr></thead>
+              <tbody>
+                {mine.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.term}</td>
+                    <td><b>{m.courses_display}</b></td>
+                    <td>{m.description || "-"}</td>
+                    <td>{ST_MAP[m.status] || m.status}</td>
+                    <td>{m.created_at ? new Date(m.created_at).toLocaleString("fa-IR") : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
       {tab === "rating" && (
         <Card title="⭐ امتیازدهی به کلاس‌ها">
           <p className="s360-hint">
