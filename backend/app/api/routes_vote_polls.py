@@ -49,9 +49,9 @@ def active_polls(survey_type: str = "request", term: str = "1405-1",
         "WHERE vp.is_active = 1 AND vp.survey_type = :st AND vp.term = :t "
         "GROUP BY vp.course_id, uc.unified_name, uc.unified_code, "
         "uc.estimated_capacity, vp.term "
-        "ORDER BY requests DESC").mappings().all(), {"st": survey_type, "t": term, "sid": sid}).mappings().all()
+        "ORDER BY requests DESC").mappings().all(), {
+        "st": survey_type, "t": term, "sid": sid}).mappings().all()
     return {"items": [dict(r) for r in rows]}
-
 
 @router.put("/update")
 def poll_update(body: PollUpdate, db: Session = Depends(get_db)):
