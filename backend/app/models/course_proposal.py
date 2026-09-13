@@ -15,4 +15,4 @@ class CourseProposal(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     status = Column(String(20), default="pending")  # pending, approved, rejected
 
-    student = relationship("Student", back_populates="proposals")
+    student = relationship("Student", )

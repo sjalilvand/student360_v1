@@ -14,6 +14,6 @@ class CourseVote(Base):
     term = Column(String(20), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    student = relationship("Student", back_populates="votes")
+    student = relationship("Student", )
     # در صورت نیاز به رابطه با UniqueCourse، آن را فعال کنید (اگر در UniqueCourse تعریف شده باشد)
-    # course = relationship("UniqueCourse", back_populates="votes")
+    # course = relationship("UniqueCourse", )

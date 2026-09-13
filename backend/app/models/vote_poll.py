@@ -14,4 +14,4 @@ class VotePoll(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # ===== این رابطه را دقیقاً به همین شکل نگه دارید =====
-    course = relationship("UniqueCourse", back_populates="vote_polls")
+    course = relationship("UniqueCourse", )

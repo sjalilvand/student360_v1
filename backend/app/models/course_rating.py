@@ -14,6 +14,6 @@ class CourseRating(Base):
     comment = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    student = relationship("Student", back_populates="ratings")
+    student = relationship("Student", )
     # در صورت نیاز به رابطه با ScheduledClass، آن را فعال کنید
     # schedule = relationship("ScheduledClass", back_populates="ratings")
