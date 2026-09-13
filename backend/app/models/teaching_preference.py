@@ -15,3 +15,8 @@ class TeachingPreference(Base):
     instructor_username = Column(String(50))     # یوزرنیم استاد
     status = Column(String(50))                  # وضعیت (pending, approved, rejected)
     term_code = Column(String(20))               # کد ترم تحصیلی
+    # ===== migrated from Flask professor_proposals =====
+    day_of_week = Column(String(20))             # روز پیشنهادی استاد
+    start_time = Column(String(10))              # ساعت شروع پیشنهادی
+    end_time = Column(String(10))                # ساعت پایان پیشنهادی
+    notes = Column(String(500))                  # یادداشت استاد
