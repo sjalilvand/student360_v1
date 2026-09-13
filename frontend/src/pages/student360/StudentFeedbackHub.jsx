@@ -1,4 +1,4 @@
-// Student 360 - Feedback hub v2.1 (student_id via query param).
+// Student 360 - Feedback hub v2.3 (live refresh, deduped picker).
 import { useEffect, useMemo, useState } from "react";
 import { Card, Disclaimer } from "./shared";
 import VoteStatsCard from "../../components/VoteStatsCard";
@@ -24,37 +24,31 @@ export default function StudentFeedbackHub() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [statsKey, setStatsKey] = useState(0);
-  const [mine, setMine] = useState(null);
-  useEffect(() => {
-    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
-      .then((r) => r.json()).then((j) => setMine(j.items || [])).catch(() => setMine([]));
-  }, [statsKey]);
+  const [mine, setMine] = useState([]);
 
-  // courses
+  // courses (deduped by backend)
   useEffect(() => {
     fetch(`${API_BASE}/api/proposals/course-options`, { headers: HEADERS() })
       .then((r) => r.json())
-      .then((d) => {
-        const arr = Array.isArray(d) ? d : (d.items || d.courses || []);
-        setCourses(arr.map((c) => ({
-          id: c.id ?? c.course_id,
-          code: c.code || c.unique_code || c.course_code || "",
-          title: c.title || c.unique_title || c.course_title || "",
-        })).filter((c) => c.id != null));
-      })
+      .then((d) => setCourses((d.items || []).filter((c) => c.id != null)))
       .catch(() => setErr("خطا در دریافت لیست دروس"));
   }, []);
 
-  // resolve my DB id (once)
+  // resolve my DB id
   useEffect(() => {
     fetch(`${API_BASE}/api/votes/me-id`, { headers: HEADERS() })
       .then((r) => r.json())
-      .then((j) => {
-        if (j.student_id) setStudentId(j.student_id);
-        else setErr("شناسایی دانشجو ناموفق بود");
-      })
-      .catch(() => setErr("خطا در شناسایی دانشجو"));
+      .then((j) => { if (j.student_id) setStudentId(j.student_id); })
+      .catch(() => {});
   }, []);
+
+  // my proposals - refetch whenever statsKey changes (after each submit)
+  useEffect(() => {
+    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
+      .then((r) => r.json())
+      .then((j) => setMine(j.items || []))
+      .catch(() => {});
+  }, [statsKey]);
 
   const filtered = useMemo(() => {
     const qn = q.trim().toLowerCase();
@@ -65,7 +59,7 @@ export default function StudentFeedbackHub() {
   }, [courses, q]);
 
   async function submit(url, body) {
-    if (!studentId) { setErr("شناسه دانشجو هنوز آماده نیست - چند لحظه بعد دوباره"); return false; }
+    if (!studentId) { setErr("شناسه دانشجو هنوز آماده نیست"); return false; }
     setBusy(true); setErr(""); setMsg("");
     try {
       const sep = url.includes("?") ? "&" : "?";
@@ -77,6 +71,7 @@ export default function StudentFeedbackHub() {
         const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
         throw new Error(det || ("HTTP " + r.status));
       }
+      setStatsKey((k) => k + 1);   // triggers stats card + my-proposals refresh
       setMsg("✅ با موفقیت ثبت شد.");
       return true;
     } catch (e) {
@@ -96,7 +91,7 @@ export default function StudentFeedbackHub() {
     if (!picked) { setErr("اول درس را انتخاب کنید"); return; }
     const ok = await submit(`${API_BASE}/api/proposals/`,
       { term, course_ids: [picked.id], description: desc });
-    if (ok) { setMsg("✅ پیشنهاد شما ثبت شد و در صف بررسی کارشناس است."); setDesc(""); }
+    if (ok) { setMsg("✅ پیشنهاد شما ثبت شد."); setDesc(""); }
   }
 
   return (
@@ -143,61 +138,60 @@ export default function StudentFeedbackHub() {
         </Card>
       )}
 
-      {tab === "vote" && <VoteStatsCard refreshKey={statsKey} title="📊 آمار رأی‌های ثبت‌شده" />}
       {tab === "vote" && (
-        <Card title="2️⃣ رأی شما درباره این درس">
-          <div className="hub-actions">
-            <button className="hub-btn like" disabled={busy || !studentId}
-                    onClick={() => doVote("like")}>👍 این درس را می‌خواهم</button>
-            <button className="hub-btn req" disabled={busy || !studentId}
-                    onClick={() => doVote("request")}>📌 ارائه‌اش را درخواست می‌کنم</button>
-          </div>
-        </Card>
+        <>
+          <Card title="2️⃣ رأی شما درباره این درس">
+            <div className="hub-actions">
+              <button className="hub-btn like" disabled={busy || !studentId || !picked}
+                      onClick={() => doVote("like")}>👍 این درس را می‌خواهم</button>
+              <button className="hub-btn req" disabled={busy || !studentId || !picked}
+                      onClick={() => doVote("request")}>📌 ارائه‌اش را درخواست می‌کنم</button>
+            </div>
+          </Card>
+          <VoteStatsCard refreshKey={statsKey} title="📊 آمار رأی‌های ثبت‌شده" />
+        </>
       )}
 
       {tab === "proposal" && (
-        <Card title="2️⃣ توضیح پیشنهاد شما">
-          <textarea rows={3} placeholder="چرا این درس باید ارائه شود؟ (اختیاری)"
-                    value={desc} onChange={(e) => setDesc(e.target.value)} />
-          <div className="hub-actions">
-            <button className="hub-btn like" disabled={busy || !studentId}
-                    onClick={doPropose}>📨 ثبت پیشنهاد</button>
-          </div>
-        </Card>
+        <>
+          <Card title="2️⃣ توضیح پیشنهاد شما">
+            <textarea rows={3} placeholder="چرا این درس باید ارائه شود؟ (اختیاری)"
+                      value={desc} onChange={(e) => setDesc(e.target.value)} />
+            <div className="hub-actions">
+              <button className="hub-btn like" disabled={busy || !studentId || !picked}
+                      onClick={doPropose}>📨 ثبت پیشنهاد</button>
+            </div>
+          </Card>
+          <Card title="📋 پیشنهادهای من">
+            {mine.length === 0 ? (
+              <p className="s360-hint">هنوز پیشنهادی ثبت نکرده‌اید.</p>
+            ) : (
+              <table className="s360-table">
+                <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th></tr></thead>
+                <tbody>
+                  {mine.map((m) => (
+                    <tr key={m.id}>
+                      <td>{m.term}</td>
+                      <td><b>{m.courses_display}</b></td>
+                      <td>{m.description || "-"}</td>
+                      <td>{ST_MAP[m.status] || m.status}</td>
+                      <td>{m.created_at ? new Date(m.created_at).toLocaleString("fa-IR") : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        </>
       )}
 
-
-      {tab === "proposal" && mine && (
-        <Card title="📋 پیشنهادهای من">
-          {mine.length === 0 ? (
-            <p className="s360-hint">هنوز پیشنهادی ثبت نکرده‌اید.</p>
-          ) : (
-            <table className="s360-table">
-              <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th></tr></thead>
-              <tbody>
-                {mine.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.term}</td>
-                    <td><b>{m.courses_display}</b></td>
-                    <td>{m.description || "-"}</td>
-                    <td>{ST_MAP[m.status] || m.status}</td>
-                    <td>{m.created_at ? new Date(m.created_at).toLocaleString("fa-IR") : "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Card>
-      )}
       {tab === "rating" && (
         <Card title="⭐ امتیازدهی به کلاس‌ها">
           <p className="s360-hint">
-            امتیازدهی به کلاس‌های برگزارشده پس از نهایی‌شدن برنامه هفتگی فعال می‌شود
-            (نیازمند شناسه کلاس از ماژول برنامه‌ریزی).
+            امتیازدهی به کلاس‌های برگزارشده پس از نهایی‌شدن برنامه هفتگی فعال می‌شود.
           </p>
         </Card>
       )}
     </div>
   );
 }
-

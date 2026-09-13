@@ -108,8 +108,8 @@ def proposals_mine(x_student_number: str = Header(default=None),
 def proposals_course_options(db: Session = Depends(get_db)):
     """Single source of truth for pickers: offered_courses (id/code/title)."""
     rows = db.execute(text(
-        "SELECT id, unique_code AS code, unique_title AS title "
-        "FROM offered_courses WHERE is_active = 1 "
+        "SELECT MIN(id) AS id, unique_code AS code, unique_title AS title "
+        "FROM offered_courses WHERE is_active = 1 GROUP BY unique_code, unique_title "
         "ORDER BY unique_title")).mappings().all()
     return {"items": [dict(r) for r in rows]}
 
