@@ -55,13 +55,13 @@ def votes_stats_all(db: Session = Depends(get_db)):
     """Aggregate vote counts per course (for students & staff)."""
     rows = db.execute(text(
         "SELECT cv.course_id AS course_id, "
-        "COALESCE(uc.unique_title, '') AS title, "
-        "COALESCE(uc.unique_code, '') AS code, "
+        "COALESCE(oc.unique_title, '') AS title, "
+        "COALESCE(oc.unique_code, '') AS code, "
         "SUM(CASE WHEN cv.vote_type = 'like' THEN 1 ELSE 0 END) AS likes, "
         "SUM(CASE WHEN cv.vote_type = 'request' THEN 1 ELSE 0 END) AS requests, "
         "COUNT(*) AS total "
         "FROM course_votes cv "
-        "LEFT JOIN unique_courses uc ON uc.id = cv.course_id "
-        "GROUP BY cv.course_id, uc.unique_title, uc.unique_code "
+        "LEFT JOIN offered_courses oc ON oc.id = cv.course_id "
+        "GROUP BY cv.course_id, oc.unique_title, oc.unique_code "
         "ORDER BY total DESC")).mappings().all()
     return {"items": [dict(r) for r in rows]}

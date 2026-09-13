@@ -26,11 +26,6 @@ def get_proposals(
     service = ProposalService(db)
     return service.get_proposals(student_id, term)
 
-@router.get("/{proposal_id}", response_model=CourseProposalResponse)
-def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
-    service = ProposalService(db)
-    return service.get_proposal(proposal_id)
-
 @router.get("/all-list")
 def proposals_all(db: Session = Depends(get_db)):
     """All proposals with student info (staff view)."""
@@ -42,3 +37,9 @@ def proposals_all(db: Session = Depends(get_db)):
         "LEFT JOIN stu_students s ON s.id = p.student_id "
         "ORDER BY p.created_at DESC LIMIT 200")).mappings().all()
     return {"items": [dict(r) for r in rows]}
+
+
+@router.get("/{proposal_id}", response_model=CourseProposalResponse)
+def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
+    service = ProposalService(db)
+    return service.get_proposal(proposal_id)
