@@ -14,7 +14,7 @@ def _graph_hint(db, question):
     try:
         from app.services import knowledge_graph_service as kg
         from sqlalchemy import text as _t
-        q = (question or "").lower()
+        q = (question or "").lower().replace("\u200c", " ")
         row = db.execute(_t(
             "SELECT unique_code, unique_title FROM offered_courses")).mappings().all()
         hit = None

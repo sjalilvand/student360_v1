@@ -170,6 +170,34 @@ def simulate(db: Session, sn: str, courses=None, units=None, avg_grade=None) -> 
                     sk = cl.get("skills") or []
             except Exception:
                 sk = []
+        if not sk:
+            # cache fallback: curriculum title -> code -> stu_course_skills (LLM-enriched)
+            try:
+                from sqlalchemy import text as _t
+                from app.models.skills import StuCourseSkill as _SCS
+                _tt = c["title"].lower().replace("\u200c", " ").strip()
+                _row = db.execute(_t(
+                    "SELECT course_code FROM stu_curriculum")).mappings().all()
+                _code = None
+                for _r in _row:
+                    _ct = str(_r["course_code"] or "")
+                    if _ct:
+                        continue
+                for _r in _row:
+                    _code = str(_r["course_code"] or "").strip()
+                # resolve code by title using curriculum table
+                _hit = db.execute(_t(
+                    "SELECT course_code FROM stu_curriculum "
+                    "WHERE REPLACE(course_title, CHAR(8204), ' ') LIKE :tt LIMIT 1"),
+                    {"tt": "%" + _tt.split()[0] + "%"}).mappings().first() if _tt else None
+                if _hit:
+                    _c2 = str(_hit["course_code"] or "").strip()
+                    _cs = db.query(_SCS).filter(_SCS.course_code == _c2).first()
+                    if _cs:
+                        import json as _json
+                        sk = _json.loads(_cs.skills or "[]")
+            except Exception:
+                sk = []
         if sk:
             skill_preview[c["title"]] = sk
 
