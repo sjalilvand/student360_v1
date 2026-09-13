@@ -307,3 +307,33 @@ try:
     app.include_router(risk_ml_router, tags=["Risk ML"])
 except Exception as _rml_err:
     print(f"WARNING: risk ml router failed: {_rml_err}")
+
+
+# ===== Mart auto-refresh background thread (auto-added) =====
+try:
+    import threading as _threading
+    import time as _time
+    import os as _os
+
+    def _mart_refresh_loop():
+        _time.sleep(15)
+        while True:
+            try:
+                from app.core.database import SessionLocal as _SL
+                from app.services import data_mart_service as _dms
+                from app.services import rag_service as _rag
+                _db = _SL()
+                try:
+                    _dms.refresh_marts(engine)
+                    _rag.rebuild_index(_db)
+                finally:
+                    _db.close()
+            except Exception as _mr_err:
+                print(f"WARNING: mart refresh failed: {_mr_err}")
+            _time.sleep(max(5, int(_os.getenv("MART_REFRESH_MINUTES", "30"))) * 60)
+
+    _threading.Thread(target=_mart_refresh_loop, daemon=True,
+                      name="mart-refresh").start()
+    print("mart auto-refresh thread started")
+except Exception as _mrt_err:
+    print(f"WARNING: mart thread failed: {_mrt_err}")

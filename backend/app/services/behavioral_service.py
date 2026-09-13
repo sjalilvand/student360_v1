@@ -15,6 +15,11 @@ DEEP_EVENT_TYPES = {
     "regulation_ask", "professor_asked", "scenario_created", "discrepancy_reported",
 }
 CORE_FEATURES = 10
+TZ_OFFSET = timedelta(hours=3, minutes=30)  # Asia/Tehran (no DST since 2022)
+
+
+def _to_tehran(dt):
+    return (dt + TZ_OFFSET) if dt else dt
 # python weekday(): 0=Monday..6=Sunday -> Persian order: Sat..Fri
 PERSIAN_ORDER = (5, 6, 0, 1, 2, 3, 4)
 PERSIAN_WEEKDAYS = ("دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه", "یکشنبه")
@@ -39,7 +44,7 @@ def engagement_index(db: Session, student_ref: str, days: int = 30) -> dict:
                 "total_events": 0, "active_days": 0, "distinct_types": 0,
                 "deep_actions": 0, "last_activity": None}
 
-    active_days = len({r.occurred_at.date() for r in rows if r.occurred_at})
+    active_days = len({_to_tehran(r.occurred_at).date() for r in rows if r.occurred_at})
     distinct_types = len({r.event_type for r in rows})
     deep = sum(1 for r in rows if r.event_type in DEEP_EVENT_TYPES)
     last = max((r.occurred_at for r in rows if r.occurred_at), default=None)
@@ -68,17 +73,17 @@ def insights(db: Session, student_ref: str, days: int = 30) -> dict:
     days = max(7, min(int(days), 120))
     rows = _fetch(db, student_ref, days)
 
-    by_hour = Counter(r.occurred_at.hour for r in rows if r.occurred_at)
-    by_weekday = Counter(r.occurred_at.weekday() for r in rows if r.occurred_at)
+    by_hour = Counter(_to_tehran(r.occurred_at).hour for r in rows if r.occurred_at)
+    by_weekday = Counter(_to_tehran(r.occurred_at).weekday() for r in rows if r.occurred_at)
     by_type = Counter(r.event_type for r in rows)
 
-    now = datetime.utcnow()
+    now = _to_tehran(datetime.utcnow())
     mid = now - timedelta(days=days / 2.0)
     recent = sum(1 for r in rows if r.occurred_at and r.occurred_at >= mid)
     older = len(rows) - recent
     trend = "up" if recent > older else ("down" if recent < older else "flat")
 
-    day_set = {r.occurred_at.date() for r in rows if r.occurred_at}
+    day_set = {_to_tehran(r.occurred_at).date() for r in rows if r.occurred_at}
     streak, d = 0, now.date()
     if d not in day_set:
         d -= timedelta(days=1)

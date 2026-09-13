@@ -43,3 +43,5 @@ node_modules/
 frontend/node_modules/
 
 backend/ml_models/
+
+backend/_*.py

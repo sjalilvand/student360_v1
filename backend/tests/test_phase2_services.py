@@ -388,3 +388,11 @@ def test_risk_ml_train_predict_cycle(env):
     assert low["engine"] in ("ml+rules", "rules")
     assert high["risk_score"] >= low["risk_score"]     # worse student scores higher
     assert "disclaimer" in high
+
+
+def test_tehran_tz_helper():
+    from datetime import datetime
+    from app.services.behavioral_service import _to_tehran
+    utc = datetime(2026, 9, 12, 20, 30)
+    teh = _to_tehran(utc)
+    assert teh.day == 13 and teh.hour == 0 and teh.minute == 0
