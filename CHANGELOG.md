@@ -29,3 +29,11 @@
 - ۲۱ تست رگرسیون pytest (همه سبز)
 - ریپوی تمیز: بدون node_modules/db/.env؛ push خودکار با گیت هوشمند
 - رفع ۱۶+ باگ (شامل circular import تاریخی، تقویم جلالی معکوس، کاراکترهای نامرئی فارسی ZWNJ/LRM، cooldown مداخله، fresh-install ریسک)
+
+### افزودنی پس از v1.0-pilot — ادغام فیچر نظرسنجی دروس (از ریپوی همکار)
+- بک‌اند: ۴ روتر votes/vote-polls/proposals/ratings با prefix /api (۸ endpoint)
+- حل تعارض‌های ORM: duplicate Student، FK به stu_students، back_populates یک‌طرفه، route ordering
+- هاب دانشجویی: ۳ تب (رأی/پیشنهاد/امتیاز) با انتخابگر جستجودار دروس + ثبت با student_id resolve
+- آمار زنده: stats-all (👍/📌 per درس با عنوان) + all-list پیشنهادها با نام دانشجو
+- کارشناس: صفحه نظرسنجی (آمار + پیشنهادها + مدیریت) — دانشجو: هاب ۳ تبی
+- زیرساخت: proxy /api در Vite + ۲۱ تست رگرسیون (پایدار در تمام ادغام)
