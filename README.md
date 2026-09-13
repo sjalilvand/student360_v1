@@ -1,63 +1,84 @@
-# university-scheduler + دانشجو ۳۶۰ (Student 360)
+# 🎓 دانشجو ۳۶۰ — Student 360
 
-دو سامانه در یک مخزن:
+سامانه یکپارچه خدمات دانشجویی هوشمند — پیاده‌سازی «نقشه راه دانشجو ۳۶۰» در سه فاز
+(PMV، شخصی‌سازی و تحلیل، اکوسیستم راهبردی) با AI واقعی (LLM + RAG + Guardrails)،
+پیش‌بینی ML، گراف دانش دروس و Digital Twin.
 
-1. **سامانه مدیریت برنامه‌ریزی درسی** (ادمین) — سبد دروس، زمان‌بندی، تخصیص اتاق، بهینه‌سازی.
-2. **🎓 دانشجو ۳۶۰** (پورتال دانشجویی) — پیاده‌سازی نیازمندی‌های بخش ۸، ۹ و ۱۰ سند نیازمندی‌ها.
+## 🚀 اجرا
 
-## اجرا
+- بک‌اند (پورت 8000): `cd backend` → ساخت venv → `pip install -r requirements.txt` →
+  `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`
+- فرانت‌اند (پورت 5173): `cd frontend` → `npm install` → `npm run dev`
+- تنظیمات: `backend/.env` را از الگوی `backend/.env.example` بسازید (کلید LLM).
+- دیتابیس SQLite و داده پایلوت در اولین اجرا خودکار ساخته می‌شوند.
 
-```bash
-# بک‌اند (پورت 8000)
+## 🧭 ورود پایلوت
+
+| نقش | شناسه |
+|---|---|
+| دانشجو (OTP) | شماره 402101001 — کد در پاسخ API |
+| دانشجو (SSO) | a.mohammadi |
+| کارشناس آموزش | staff-admin / admin123 |
+
+## ✨ پورتال دانشجو (۱۵ ماژول)
+
+- پروفایل هوشمند — GPA وزنی از Data Mart
+- بینش‌های رفتاری — شاخص تعامل ۵ مؤلفه‌ای + پیشنهادهای شخصی
+- مسیر تحصیلی شخصی‌سازی‌شده — ریسک-آگاه با احترام به پیش‌نیازها
+- دستیار آیین‌نامه‌ای — LLM+RAG با ارجاع منبع و Guardrails
+- راهنمای فرایندها، دستیار انتخاب واحد، بررسی فارغ‌التحصیلی
+- تقویم و یادآوری، هشدارها، کوییز هوشمند
+- کوییز تطبیقی LLM — سه سطح، تطبیق خودکار، تصحیح سمت سرور
+- استاد هوشمند — LLM با منابع درس
+- پروفایل شغلی — استخراج مهارت (keyword + LLM cache) + آمادگی ۵ مسیر
+- Digital Twin — شبیه‌سازی «چه می‌شود اگر» + توضیح‌گر LLM + fallback گراف
+- دستیار هوشمند یکپارچه (RAG)
+
+## ✨ پنل کارشناس (۸ ماژول)
+
+- میز کار (آمار کلی + آخرین ورودها) • دانشجویان (GPA وزنی از مارت)
+- تعامل دانشجویان (رتبه‌بندی) • هشدار ریسک تحصیلی (قواعد + **ML RandomForest ensemble**)
+- مداخله‌های حمایتی (چرخه کامل: اسکن idempotent با cooldown ← بررسی ← شفافیت دانشجو)
+- کیفیت پاسخ‌ها (NLP بازخورد با LLM: مضمون‌ها + توصیه‌های محصولی)
+- گراف دروس (کاوش fuzzy، مسیر یادگیری، Visualization با react-flow)
+
+## 📊 داشبورد تحلیل (ادمین)
+
+۵ مارت SQL • تقویم شمسی رویدادها (heatmap) • پیش‌بینی تقاضا (RandomForest) •
+تقاضا vs ثبت‌نام • GPA وزنی دانشجویان
+
+## 🏗 معماری
+
+- backend/app/api — ۲۰+ روتر REST
+- backend/app/services — ۲۵+ سرویس (risk, risk_ml, behavioral, twin, RAG, graph, skills, feedback-NLP, ...)
+- backend/app/models — SQLAlchemy (Student360 + event log + interventions + skills cache)
+- backend/app/core — database, event-tracking middleware, guardrails, AI integration
+- frontend/src — React 18 + Vite + recharts + reactflow (پورتال role-aware)
+
+زیرساخت کلیدی:
+- Event Tracking خودکار (middleware + فرانت) → stu_event_logs
+- Data Marts: ۵ SQL view (GPA وزنی، تقاضا، رویداد روزانه/تجموعی، ترم)
+- RAG فارسی: TF-IDF روی Regulation/Guide/Curriculum + Prompt Guardrails
+- LLM: هر endpoint سازگار با OpenAI (AvalAI/…) + fallback قطعی
+- Knowledge Graph: networkx (پیش‌نیاز + مهارت + شرط‌ها، fuzzy و ZWNJ-safe)
+- ML: RandomForest (تقاضا + ریسک با برچسب distilled و ensemble با قواعد)
+
+## 🧪 تست‌ها
+
 cd backend
-.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.venv\Scripts\python -m pytest tests/test_phase2_services.py -o addopts="" -q
 
-# فرانت‌اند (پورت 5173)
-cd frontend
-npm run dev
-```
+۲۰ رگرسیون: جلالی، guardrails، مارت/GPA وزنی، ریسک، cooldown مداخله، کوییز تطبیقی،
+مسیر تحصیلی، مهارت شغلی، NLP بازخورد، Digital Twin، چرخه ML، Knowledge Graph.
 
-یا از `Run-University-Scheduler.ps1` استفاده کنید.
+## 🔐 امنیت
 
-داده‌های پایلوت دانشجو ۳۶۰ در اولین راه‌اندازی به‌صورت خودکار seed می‌شود.
+- کلید LLM فقط در backend/.env (gitignored) — الگو: backend/.env.example
+- دیتابیس‌ها و ml_models/ گیت‌ایگنور شده
+- node_modules از ریپو حذف (deps با npm install)
+- لاگ ممیزی stu_audit_logs + همه پاسخ‌های AI با برچسب موتور و disclaimer
 
-## ورود به دانشجو ۳۶۰ (پایلوت)
+## 🗺 وضعیت نقشه راه
 
-- **OTP**: شماره دانشجویی `402101001` — کد یک‌بارمصرف در پاسخ API نمایش داده می‌شود (در نسخه نهایی پیامک می‌شود).
-- **SSO**: شناسه `a.mohammadi`
-- **کارشناس آموزش**: `staff-admin` / `admin123`
-
-## معماری دانشجو ۳۶۰
-
-```
-backend/app/
-├── models/student360.py              # موجودیت‌های بخش ۱۰ (Student, Program, Curriculum, ...)
-├── services/
-│   ├── student360_auth.py            # SSO، OTP، نقش‌ها، محدوده سازمانی، لاگ ممیزی (STU-AUTH)
-│   ├── student360_profile.py         # پروفایل هوشمند (STU-PRO-01..09)
-│   ├── student360_regulations.py     # دستیار آیین‌نامه‌ای + راهنمای فرایندها (STU-REG، بند ۸-۴)
-│   ├── student360_academic.py        # انتخاب واحد، پیش‌نیاز، فارغ‌التحصیلی (STU-CRS، STU-GRD، بند ۸-۶)
-│   ├── student360_calendar_alerts.py # تقویم، یادآوری، هشدار زودهنگام (بند ۸-۸، ۸-۹)
-│   └── student360_quiz_professor.py  # کوییز هوشمند، استاد هوشمند (بند ۸-۱۰، ۸-۱۱)
-├── api/routes_student360.py          # REST API کامل
-└── data/seed_student360.py           # داده پایلوت (idempotent)
-
-frontend/src/pages/student360/        # پورتال دانشجویی (React)
-```
-
-## قواعد کسب‌وکار پیاده‌شده (بخش ۹)
-
-- داده رسمی فقط از سامانه آموزش؛ دانشجو نمی‌تواند داده رسمی را ویرایش کند (فقط اعلام مغایرت).
-- ثبت قطعی انتخاب واحد فقط در سامانه رسمی آموزش؛ سناریوها فقط پیشنهادند (STU-CRS-11).
-- نتیجه فارغ‌التحصیلی با هشدار «اولیه و غیرقطعی» همراه است (STU-GRD-08).
-- پاسخ‌های آیین‌نامه‌ای همیشه منبع + ماده + تبصره + تاریخ اعتبار دارند؛ آیین‌نامه منقضی پاسخ‌گو نیست.
-- پاسخ کم‌اطمینان علامت‌گذاری و در نبود پاسخ، به کارشناس آموزش ارجاع می‌شود (STU-REG-04/05).
-- هر قاعده آموزشی تاریخ شروع/پایان اعتبار دارد؛ هشدارها دارای دلیل، شدت و اقدام پیشنهادی هستند و به تصمیم تنبیهی خودکار منجر نمی‌شوند.
-- تمام ورودها و عملیات حساس در `stu_audit_logs` ثبت می‌شود.
-
-## تست‌ها
-
-```bash
-cd backend
-.venv\Scripts\python.exe -m pytest tests/test_student360.py -o addopts=""
-```
+فاز ۱ (PMV) ≈ ۹۷٪ | فاز ۲ (شخصی‌سازی/تحلیل) ≈ ۶۸٪ | فاز ۳ (راهبردی) ≈ ۶۰٪ آغازشده
+(Digital Twin، گراف دانش، ML ریسک). مستند کامل ۱۷ دسته: سند نقشه راه پروژه.
