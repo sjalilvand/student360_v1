@@ -300,3 +300,10 @@ try:
     app.include_router(graph_router, tags=["Knowledge Graph"])
 except Exception as _kg_err:
     print(f"WARNING: graph router failed: {_kg_err}")
+
+# ===== Step: ML risk scorer (auto-added) =====
+try:
+    from app.api.routes_risk_ml import router as risk_ml_router
+    app.include_router(risk_ml_router, tags=["Risk ML"])
+except Exception as _rml_err:
+    print(f"WARNING: risk ml router failed: {_rml_err}")

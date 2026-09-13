@@ -361,3 +361,30 @@ def test_knowledge_graph_build_and_path(env):
     assert [s["code"] for s in p["path"]] == ["CS101", "CS102", "CS103"]
     np_ = kg.learning_path(db, "CS103", "CS101")       # reverse = no path
     assert np_["found"] is False
+
+
+def test_risk_ml_train_predict_cycle(env):
+    db, _ = env
+    seed_program(db, 1)
+    seed_student(db, "4011", sid=11)
+    seed_grades(db, 11, [
+        {"term": "1402-1", "course_code": "A", "course_title": "A",
+         "credits": 3, "grade": 18.0, "status": "passed"},
+        {"term": "1402-2", "course_code": "B", "course_title": "B",
+         "credits": 3, "grade": 19.0, "status": "passed"},
+    ])
+    seed_student(db, "4012", sid=12)
+    seed_grades(db, 12, [
+        {"term": "1402-1", "course_code": "C", "course_title": "C",
+         "credits": 3, "grade": 11.0, "status": "passed"},
+        {"term": "1402-2", "course_code": "D", "course_title": "D",
+         "credits": 3, "grade": 9.0, "status": "failed"},
+    ])
+    from app.services import risk_ml_service as rm
+    tr = rm.train(db, min_students=2)
+    assert tr["ok"] is True and rm.model_exists()
+    low = rm.predict(db, "4011")
+    high = rm.predict(db, "4012")
+    assert low["engine"] in ("ml+rules", "rules")
+    assert high["risk_score"] >= low["risk_score"]     # worse student scores higher
+    assert "disclaimer" in high
