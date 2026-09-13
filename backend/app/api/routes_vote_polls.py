@@ -36,21 +36,20 @@ def active_polls(survey_type: str = "request", term: str = "1405-1",
     sid = _student_id(db, x_student_number)
     rows = db.execute(text(
         "SELECT vp.course_id AS course_id, "
-        "COALESCE(oc.unique_title, '') AS title, "
-        "COALESCE(oc.unique_code, '') AS code, "
-        "COALESCE(oc.capacity, 0) AS capacity, "
+        "COALESCE(uc.unified_name, '') AS title, "
+        "COALESCE(uc.unified_code, '') AS code, "
+        "COALESCE(uc.estimated_capacity, 0) AS capacity, "
         "SUM(CASE WHEN cv.vote_type = 'request' THEN 1 ELSE 0 END) AS requests, "
-        "CASE WHEN :sid IS NOT NULL AND EXISTS ("
-        "  SELECT 1 FROM course_votes cv2 "
-        "  WHERE cv2.course_id = vp.course_id AND cv2.term = vp.term "
-        "  AND cv2.student_id = :sid AND cv2.vote_type = 'request' "
-        ") THEN 1 ELSE 0 END AS my_request "
+        "SUM(CASE WHEN cv.student_id = :sid THEN 1 ELSE 0 END) AS my_request "
         "FROM vote_polls vp "
-        "LEFT JOIN offered_courses oc ON oc.id = vp.course_id "
-        "LEFT JOIN course_votes cv ON cv.course_id = vp.course_id AND cv.term = vp.term "
+        "LEFT JOIN unique_courses uc ON uc.id = vp.course_id "
+        "LEFT JOIN course_votes cv ON cv.course_id = vp.course_id "
+        "  AND cv.term = vp.term AND cv.vote_type = 'request' "
+        "  AND cv.student_id = COALESCE(:sid, -1) "
         "WHERE vp.is_active = 1 AND vp.survey_type = :st AND vp.term = :t "
-        "GROUP BY vp.course_id, oc.unique_title, oc.unique_code, oc.capacity, vp.term "
-        "ORDER BY requests DESC"), {"st": survey_type, "t": term, "sid": sid}).mappings().all()
+        "GROUP BY vp.course_id, uc.unified_name, uc.unified_code, "
+        "uc.estimated_capacity, vp.term "
+        "ORDER BY requests DESC").mappings().all(), {"st": survey_type, "t": term, "sid": sid}).mappings().all()
     return {"items": [dict(r) for r in rows]}
 
 
