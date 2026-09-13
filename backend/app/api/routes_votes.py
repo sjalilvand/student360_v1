@@ -78,3 +78,46 @@ def votes_stats_all(db: Session = Depends(get_db)):
         "GROUP BY cv.course_id, oc.unique_title, oc.unique_code "
         "ORDER BY total DESC")).mappings().all()
     return {"items": [dict(r) for r in rows]}
+
+
+@router.get("/mine")
+def votes_mine(x_student_number: str = Header(default=None),
+               db: Session = Depends(get_db)):
+    """My votes only (with course titles)."""
+    if not x_student_number:
+        raise HTTPException(status_code=422, detail="X-Student-Number required")
+    stu = db.execute(
+        text("SELECT id FROM stu_students WHERE student_number = :sn"),
+        {"sn": str(x_student_number).strip()}).first()
+    if not stu:
+        return {"items": []}
+    rows = db.execute(text(
+        "SELECT cv.id, cv.course_id, cv.vote_type, cv.term, cv.created_at, "
+        "COALESCE(oc.unique_title, '') AS course_title, "
+        "COALESCE(oc.unique_code, '') AS course_code "
+        "FROM course_votes cv "
+        "LEFT JOIN offered_courses oc ON oc.id = cv.course_id "
+        "WHERE cv.student_id = :sid "
+        "ORDER BY cv.created_at DESC LIMIT 100"), {"sid": stu[0]}).mappings().all()
+    return {"items": [dict(r) for r in rows]}
+
+
+@router.delete("/{vote_id}")
+def votes_delete(vote_id: int, x_student_number: str = Header(default=None),
+                 db: Session = Depends(get_db)):
+    """Delete OWN vote only (403 otherwise)."""
+    if not x_student_number:
+        raise HTTPException(status_code=422, detail="X-Student-Number required")
+    stu = db.execute(
+        text("SELECT id FROM stu_students WHERE student_number = :sn"),
+        {"sn": str(x_student_number).strip()}).first()
+    if not stu:
+        raise HTTPException(status_code=404, detail="student not found")
+    vote = db.query(CourseVote).filter(CourseVote.id == vote_id).first()
+    if not vote:
+        raise HTTPException(status_code=404, detail="رأی یافت نشد")
+    if vote.student_id != stu[0]:
+        raise HTTPException(status_code=403, detail="فقط رأی خودتان قابل حذف است")
+    db.delete(vote)
+    db.commit()
+    return {"ok": True, "deleted": vote_id}

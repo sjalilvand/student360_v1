@@ -532,3 +532,9 @@
 .hub-item:hover small { color: #e0e7ff; }
 /* prevent the page container from clipping the dropdown */
 .s360-content:has(.hub-picker) { overflow: visible; }
+
+/* hub delete buttons */
+.hub-del { background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c;
+  border-radius: 8px; padding: .25rem .55rem; cursor: pointer; font-size: .85rem; }
+.hub-del:hover { background: #fecaca; }
+.hub-del:disabled { opacity: .5; cursor: wait; }

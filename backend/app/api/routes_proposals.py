@@ -117,3 +117,26 @@ def proposals_course_options(db: Session = Depends(get_db)):
 def get_proposal(proposal_id: int, db: Session = Depends(get_db)):
     service = ProposalService(db)
     return service.get_proposal(proposal_id)
+
+
+@router.delete("/{proposal_id}")
+def proposals_delete(proposal_id: int, x_student_number: str = Header(default=None),
+                     db: Session = Depends(get_db)):
+    """Delete OWN proposal only (403 otherwise)."""
+    if not x_student_number:
+        raise HTTPException(status_code=422, detail="X-Student-Number required")
+    stu = db.execute(
+        text("SELECT id FROM stu_students WHERE student_number = :sn"),
+        {"sn": str(x_student_number).strip()}).first()
+    if not stu:
+        raise HTTPException(status_code=404, detail="student not found")
+    prop = db.execute(text(
+        "SELECT id, student_id FROM course_proposals WHERE id = :pid"),
+        {"pid": proposal_id}).mappings().first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="پیشنهاد یافت نشد")
+    if prop["student_id"] != stu[0]:
+        raise HTTPException(status_code=403, detail="فقط پیشنهاد خودتان قابل حذف است")
+    db.execute(text("DELETE FROM course_proposals WHERE id = :pid"), {"pid": proposal_id})
+    db.commit()
+    return {"ok": True, "deleted": proposal_id}

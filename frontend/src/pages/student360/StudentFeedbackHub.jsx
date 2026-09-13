@@ -1,4 +1,4 @@
-// Student 360 - Feedback hub v2.3 (live refresh, deduped picker).
+// Student 360 - Feedback hub v2.4 (my votes list + delete own vote/proposal).
 import { useEffect, useMemo, useState } from "react";
 import { Card, Disclaimer } from "./shared";
 import VoteStatsCard from "../../components/VoteStatsCard";
@@ -10,6 +10,7 @@ const HEADERS = () => ({
 });
 const TERMS = ["1405-1", "1404-2", "1404-1"];
 const ST_MAP = { pending: "در انتظار بررسی", approved: "تایید شده", rejected: "رد شده" };
+const VT_MAP = { like: "👍 می‌خواهم", request: "📌 درخواست ارائه" };
 
 export default function StudentFeedbackHub() {
   const [tab, setTab] = useState("vote");
@@ -25,30 +26,26 @@ export default function StudentFeedbackHub() {
   const [busy, setBusy] = useState(false);
   const [statsKey, setStatsKey] = useState(0);
   const [mine, setMine] = useState([]);
+  const [myVotes, setMyVotes] = useState([]);
 
-  // courses (deduped by backend)
+  const refreshMine = () => {
+    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
+      .then((r) => r.json()).then((j) => setMine(j.items || [])).catch(() => {});
+    fetch(`${API_BASE}/api/votes/mine`, { headers: HEADERS() })
+      .then((r) => r.json()).then((j) => setMyVotes(j.items || [])).catch(() => {});
+  };
+
   useEffect(() => {
     fetch(`${API_BASE}/api/proposals/course-options`, { headers: HEADERS() })
       .then((r) => r.json())
       .then((d) => setCourses((d.items || []).filter((c) => c.id != null)))
       .catch(() => setErr("خطا در دریافت لیست دروس"));
-  }, []);
-
-  // resolve my DB id
-  useEffect(() => {
     fetch(`${API_BASE}/api/votes/me-id`, { headers: HEADERS() })
       .then((r) => r.json())
       .then((j) => { if (j.student_id) setStudentId(j.student_id); })
       .catch(() => {});
+    refreshMine();
   }, []);
-
-  // my proposals - refetch whenever statsKey changes (after each submit)
-  useEffect(() => {
-    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
-      .then((r) => r.json())
-      .then((j) => setMine(j.items || []))
-      .catch(() => {});
-  }, [statsKey]);
 
   const filtered = useMemo(() => {
     const qn = q.trim().toLowerCase();
@@ -71,12 +68,32 @@ export default function StudentFeedbackHub() {
         const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
         throw new Error(det || ("HTTP " + r.status));
       }
-      setStatsKey((k) => k + 1);   // triggers stats card + my-proposals refresh
+      setStatsKey((k) => k + 1);
+      refreshMine();
       setMsg("✅ با موفقیت ثبت شد.");
       return true;
     } catch (e) {
       setErr("خطا: " + (e.message || ""));
       return false;
+    } finally { setBusy(false); }
+  }
+
+  async function remove(url, id, what) {
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const r = await fetch(`${url}/${id}`, {
+        method: "DELETE", headers: HEADERS(),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
+        throw new Error(det || ("HTTP " + r.status));
+      }
+      setMsg(`✅ ${what} حذف شد.`);
+      setStatsKey((k) => k + 1);
+      refreshMine();
+    } catch (e) {
+      setErr("خطا: " + (e.message || ""));
     } finally { setBusy(false); }
   }
 
@@ -149,6 +166,28 @@ export default function StudentFeedbackHub() {
             </div>
           </Card>
           <VoteStatsCard refreshKey={statsKey} title="📊 آمار رأی‌های ثبت‌شده" />
+          <Card title="🗳 رأی‌های من">
+            {myVotes.length === 0 ? (
+              <p className="s360-hint">هنوز رأیی ثبت نکرده‌اید.</p>
+            ) : (
+              <table className="s360-table">
+                <thead><tr><th>درس</th><th>نوع رأی</th><th>ترم</th><th>زمان</th><th></th></tr></thead>
+                <tbody>
+                  {myVotes.map((v) => (
+                    <tr key={v.id}>
+                      <td><b>{v.course_title || "-"}</b> <small>({v.course_code})</small></td>
+                      <td>{VT_MAP[v.vote_type] || v.vote_type}</td>
+                      <td>{v.term}</td>
+                      <td>{v.created_at ? new Date(v.created_at).toLocaleString("fa-IR") : "-"}</td>
+                      <td><button className="hub-del"
+                                  disabled={busy}
+                                  onClick={() => remove("/api/votes", v.id, "رأی")}>🗑</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
         </>
       )}
 
@@ -167,7 +206,7 @@ export default function StudentFeedbackHub() {
               <p className="s360-hint">هنوز پیشنهادی ثبت نکرده‌اید.</p>
             ) : (
               <table className="s360-table">
-                <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th></tr></thead>
+                <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th><th></th></tr></thead>
                 <tbody>
                   {mine.map((m) => (
                     <tr key={m.id}>
@@ -176,6 +215,9 @@ export default function StudentFeedbackHub() {
                       <td>{m.description || "-"}</td>
                       <td>{ST_MAP[m.status] || m.status}</td>
                       <td>{m.created_at ? new Date(m.created_at).toLocaleString("fa-IR") : "-"}</td>
+                      <td><button className="hub-del"
+                                  disabled={busy}
+                                  onClick={() => remove("/api/proposals", m.id, "پیشنهاد")}>🗑</button></td>
                     </tr>
                   ))}
                 </tbody>
