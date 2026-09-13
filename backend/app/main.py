@@ -293,3 +293,10 @@ try:
     app.include_router(twin_router, tags=["Digital Twin"])
 except Exception as _tw_err:
     print(f"WARNING: twin router failed: {_tw_err}")
+
+# ===== Phase 3 Step 2: Knowledge Graph (auto-added) =====
+try:
+    from app.api.routes_graph import router as graph_router
+    app.include_router(graph_router, tags=["Knowledge Graph"])
+except Exception as _kg_err:
+    print(f"WARNING: graph router failed: {_kg_err}")

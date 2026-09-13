@@ -331,3 +331,33 @@ def test_digital_twin_simulation(env):
     assert r2["after"]["max_units"] == 12                     # probation1->cap14, then risk-bala->12
     assert any("مردود" in w for w in r2["warnings"])
 
+
+
+def test_knowledge_graph_build_and_path(env):
+    db, _ = env
+    seed_program(db, 1)
+    seed_student(db, "4008")
+    # curriculum + offered_courses prereqs chain: CS101 -> CS102 -> CS103
+    from app.models.student360 import Curriculum
+    for c in [("CS101", 3, 1), ("CS102", 4, 2), ("CS103", 4, 3)]:
+        db.add(Curriculum(program_id=1, course_code=c[0], course_title=c[0],
+                          credits=c[1], course_nature="main-obligatory",
+                          suggested_term=c[2], is_chain_course=False))
+    from sqlalchemy import text as _t
+    db.execute(_t("INSERT INTO offered_courses (unique_code, unique_title, prerequisite) "
+                  "VALUES ('CS102','CS102','CS101')"))
+    db.execute(_t("INSERT INTO offered_courses (unique_code, unique_title, prerequisite) "
+                  "VALUES ('CS103','CS103','CS102')"))
+    db.commit()
+    from app.services import knowledge_graph_service as kg
+    kg.invalidate()
+    st = kg.stats(db)
+    assert st["courses"] >= 3 and st["prereq_edges"] >= 2
+    cl = kg.course_cluster(db, "CS103")
+    assert "CS101" in cl["all_prereqs_recursive"]      # transitive!
+    assert cl["unlocks_count"] == 0                    # terminal course
+    p = kg.learning_path(db, "CS101", "CS103")
+    assert p["found"] and p["length"] == 3
+    assert [s["code"] for s in p["path"]] == ["CS101", "CS102", "CS103"]
+    np_ = kg.learning_path(db, "CS103", "CS101")       # reverse = no path
+    assert np_["found"] is False

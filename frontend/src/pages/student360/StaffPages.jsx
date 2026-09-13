@@ -358,3 +358,101 @@ export function StaffFeedbackPage() {
     </div>
   );
 }
+
+export function GraphExplorerPage() {
+  const [stats, setStats] = useState(null);
+  const [roots, setRoots] = useState([]);
+  const [query, setQuery] = useState("");
+  const [cluster, setCluster] = useState(null);
+  const [pf, setPf] = useState({ from: "", to: "", res: null });
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/graph/stats`, { headers: HEADERS() })
+      .then((r) => r.json()).then(setStats).catch(() => setStats({ error: true }));
+    fetch(`${API_BASE}/api/graph/roots?limit=15`, { headers: HEADERS() })
+      .then((r) => r.json()).then((j) => setRoots(j.items || [])).catch(() => {});
+  }, []);
+
+  async function lookup(code) {
+    if (!code) return;
+    const j = await fetch(`${API_BASE}/api/graph/course/${encodeURIComponent(code)}`,
+      { headers: HEADERS() }).then((r) => r.json()).catch(() => ({ error: true }));
+    setCluster(j);
+  }
+
+  async function findPath() {
+    if (!pf.from || !pf.to) return;
+    const j = await fetch(
+      `${API_BASE}/api/graph/path?from=${encodeURIComponent(pf.from)}&to=${encodeURIComponent(pf.to)}`,
+      { headers: HEADERS() }).then((r) => r.json()).catch(() => ({ found: false }));
+    setPf({ ...pf, res: j });
+  }
+
+  if (!stats) return <Loading />;
+  return (
+    <div className="s360-page">
+      <h2>🕸️ گراف دانش دروس</h2>
+      <div className="mart-chips">
+        <span className="mart-chip">درس: {stats.courses}</span>
+        <span className="mart-chip">مهارت: {stats.skills}</span>
+        <span className="mart-chip">یال پیش‌نیاز: {stats.prereq_edges}</span>
+        <span className="mart-chip">درس شروع (ریشه): {stats.roots_count}</span>
+        <span className="mart-chip">اجزا: {stats.components}</span>
+      </div>
+
+      <Card title="🔍 کاوش یک درس (کد یا عنوان)">
+        <div className="s360-form-row">
+          <input placeholder="مثلاً 1044 یا ریاضی عمومی 1 یا CS499"
+                 value={query} onChange={(e) => setQuery(e.target.value)}
+                 onKeyDown={(e) => e.key === "Enter" && lookup(query)} />
+          <button onClick={() => lookup(query)}>کاوش</button>
+        </div>
+        {cluster && !cluster.error && (
+          <div className="s360-guide">
+            <h4>{cluster.code} — {cluster.title}</h4>
+            <div className="s360-kv"><span>پیش‌نیاز مستقیم:</span><b>{cluster.direct_prereqs?.join("، ") || "-"}</b></div>
+            <div className="s360-kv"><span>پیش‌نیازهای بازگشتی:</span><b>{cluster.all_prereqs_recursive?.length} درس</b>
+              <small className="s360-hint"> ({cluster.all_prereqs_recursive?.slice(0, 8).join("، ")}{cluster.all_prereqs_recursive?.length > 8 ? "..." : ""})</small>
+            </div>
+            <div className="s360-kv"><span>باز می‌کند:</span><b>{cluster.unlocks_count} درس</b>
+              <small className="s360-hint"> ({cluster.direct_dependents?.slice(0, 6).join("، ")}{cluster.direct_dependents?.length > 6 ? "..." : ""})</small>
+            </div>
+            {cluster.conditions?.length > 0 && (
+              <div className="s360-kv"><span>شرط‌های واحدی:</span><b>{cluster.conditions.join("، ")}</b></div>
+            )}
+            <div className="s360-kv"><span>مهارت‌ها:</span><b>{cluster.skills?.join("، ") || "-"}</b></div>
+          </div>
+        )}
+        {cluster?.error && <p className="s360-error">درس در گراف یافت نشد</p>}
+      </Card>
+
+      <Card title="🧭 مسیر یادگیری بین دو درس">
+        <div className="s360-form-row">
+          <input placeholder="از (مثلاً ریاضی عمومی 1)" value={pf.from}
+                 onChange={(e) => setPf({ ...pf, from: e.target.value })} />
+          <input placeholder="تا (مثلاً پایگاه داده)" value={pf.to}
+                 onChange={(e) => setPf({ ...pf, to: e.target.value })} />
+          <button onClick={findPath}>یافتن مسیر</button>
+        </div>
+        {pf.res && pf.res.found && (
+          <ol className="eng-recs">
+            {pf.res.path.map((s) => <li key={s.i}><b>{s.title}</b> ({s.code})</li>)}
+          </ol>
+        )}
+        {pf.res && !pf.res.found && <Empty>{pf.res.note || pf.res.error || "مسیری یافت نشد"}</Empty>}
+      </Card>
+
+      <Card title="🌱 دروس شروع (بیشترین گشایش)">
+        <table className="s360-table">
+          <thead><tr><th>کد</th><th>درس</th><th>باز می‌کند</th><th></th></tr></thead>
+          <tbody>{roots.map((r) => (
+            <tr key={r.code}>
+              <td>{r.code}</td><td><b>{r.title}</b></td><td>{r.unlocks} درس</td>
+              <td><button onClick={() => { setQuery(r.code); lookup(r.code); }}>کاوش</button></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}
