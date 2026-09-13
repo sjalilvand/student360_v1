@@ -32,3 +32,8 @@ frontend/.vite.err.log
 .coverage
 backend/.coverage
 *.pyc
+*.bak
+*.bak2
+*.bak3
+*.bakfix
+*.bakviz

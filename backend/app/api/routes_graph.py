@@ -36,3 +36,10 @@ def graph_path(frm: str = Query(..., alias="from"),
 def graph_rebuild(db: Session = Depends(get_db)):
     kg.invalidate()
     return {"ok": True, **kg.stats(db)}
+
+
+@router.get("/api/graph/neighbors")
+def graph_neighbors(code: str = Query(...), depth: int = Query(2, ge=1, le=4),
+                    include_skills: bool = Query(True),
+                    db: Session = Depends(get_db)):
+    return kg.neighbors_subgraph(db, code, depth, include_skills)

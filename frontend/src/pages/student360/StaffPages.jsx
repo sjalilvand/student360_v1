@@ -1,6 +1,7 @@
 // Student 360 - Staff workspace pages (education-expert).
 import { useEffect, useState } from "react";
 import { Card, Loading, Empty } from "./shared";
+import GraphView from "../../components/GraphView";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 const HEADERS = () => ({ "X-Student-Number": localStorage.getItem("s360_student_number") || "" });
@@ -421,6 +422,10 @@ export function GraphExplorerPage() {
               <div className="s360-kv"><span>شرط‌های واحدی:</span><b>{cluster.conditions.join("، ")}</b></div>
             )}
             <div className="s360-kv"><span>مهارت‌ها:</span><b>{cluster.skills?.join("، ") || "-"}</b></div>
+            <div style={{ marginTop: ".8rem" }}>
+              <b className="s360-hint">🗺️ نمودار اطراف این درس (پیش‌نیازها و مهارت‌ها):</b>
+              <GraphView code={cluster.code} depth={2} />
+            </div>
           </div>
         )}
         {cluster?.error && <p className="s360-error">درس در گراف یافت نشد</p>}
@@ -456,3 +461,4 @@ export function GraphExplorerPage() {
     </div>
   );
 }
+

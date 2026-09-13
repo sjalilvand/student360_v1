@@ -195,6 +195,55 @@ def learning_path(db: Session, frm: str, to: str) -> dict:
     return {"found": True, "from": f, "to": t, "length": len(path), "path": steps}
 
 
+def neighbors_subgraph(db: Session, code: str, depth: int = 2,
+                       include_skills: bool = True) -> dict:
+    """Small subgraph around one course: nodes + edges for react-flow."""
+    G = get_graph(db)
+    code = str(code).strip()
+    resolve = {}
+    for n in G.nodes:
+        if str(n).startswith("SKILL::"):
+            continue
+        resolve[_norm(_label(G, n))] = n
+    if code not in G:
+        code = resolve.get(_norm(code), code)
+    if code not in G:
+        return {"error": "course not in graph", "code": code}
+
+    depth = max(1, min(int(depth), 4))
+    nodes = {code}
+    frontier = {code}
+    for _ in range(depth):
+        nxt = set()
+        for n in frontier:
+            for m in list(G.predecessors(n)) + list(G.successors(n)):
+                if str(m).startswith("SKILL::") and not include_skills:
+                    continue
+                if m not in nodes:
+                    nxt.add(m)
+                nodes.add(m)
+        frontier = nxt
+        if not frontier:
+            break
+
+    nodes_list, edges_list = [], []
+    for n in nodes:
+        is_skill = str(n).startswith("SKILL::")
+        ntype = "skill" if is_skill else "course"
+        nodes_list.append({
+            "id": str(n),
+            "label": str(n).replace("SKILL::", "") if is_skill else _label(G, n),
+            "type": ntype,
+            "conditions": (G.nodes[n].get("conditions") or []) if not is_skill else [],
+        })
+    for u, v, d in G.edges(data=True):
+        if u in nodes and v in nodes:
+            edges_list.append({"source": str(u), "target": str(v),
+                               "kind": d.get("kind", "prereq")})
+    return {"center": code, "center_title": _label(G, code),
+            "depth": depth, "nodes": nodes_list, "edges": edges_list}
+
+
 def roots_for_term(db: Session, limit: int = 30) -> list:
     G = get_graph(db)
     course_nodes = [n for n in G.nodes if not str(n).startswith("SKILL::")]
