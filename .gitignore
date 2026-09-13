@@ -37,3 +37,7 @@ backend/.coverage
 *.bak3
 *.bakfix
 *.bakviz
+
+# deps ---
+node_modules/
+frontend/node_modules/
