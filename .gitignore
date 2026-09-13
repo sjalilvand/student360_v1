@@ -45,3 +45,10 @@ frontend/node_modules/
 backend/ml_models/
 
 backend/_*.py
+
+# session artifacts ---
+step*_runner.ps1
+start_and_test.ps1
+backend/_*.py
+*.bak*
+_trash_*/
