@@ -1,6 +1,7 @@
 // Student 360 - Feedback hub v2.1 (student_id via query param).
 import { useEffect, useMemo, useState } from "react";
 import { Card, Disclaimer } from "./shared";
+import VoteStatsCard from "../../components/VoteStatsCard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 const HEADERS = () => ({
@@ -21,6 +22,7 @@ export default function StudentFeedbackHub() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [statsKey, setStatsKey] = useState(0);
 
   // courses
   useEffect(() => {
@@ -135,6 +137,7 @@ export default function StudentFeedbackHub() {
         </Card>
       )}
 
+      {tab === "vote" && <VoteStatsCard refreshKey={statsKey} title="📊 آمار رأی‌های ثبت‌شده" />}
       {tab === "vote" && (
         <Card title="2️⃣ رأی شما درباره این درس">
           <div className="hub-actions">
@@ -168,3 +171,4 @@ export default function StudentFeedbackHub() {
     </div>
   );
 }
+
