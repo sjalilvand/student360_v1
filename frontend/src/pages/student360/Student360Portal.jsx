@@ -8,6 +8,7 @@ import StudyPathPage from "./StudyPathPage";
 import AdaptiveQuizPage from "./AdaptiveQuizPage";
 import CareerPage from "./CareerPage";
 import TwinPage from "./TwinPage";
+import StudentFeedbackHub from "./StudentFeedbackHub";
 import VoteManagement from "../VoteManagement";
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
@@ -35,6 +36,7 @@ const STUDENT_MENU = [
   { id: "adaptivequiz", icon: "🎯", label: "کوییز تطبیقی (AI)" },
   { id: "professor", icon: "🤖", label: "استاد هوشمند" },
   { id: "career", icon: "💼", label: "پروفایل شغلی" },
+  { id: "votes", icon: "🗳", label: "نظرسنجی دروس" },
   { id: "twin", icon: "🧊", label: "شبیه‌ساز چه می‌شود اگر" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
@@ -109,6 +111,7 @@ export default function Student360Portal({ onExit }) {
     professor: <ProfessorPage />,
     career: <CareerPage />,
     twin: <TwinPage />,
+    votes: <StudentFeedbackHub />,
     ai: <AiAssistantPage />,
   };
   const pages = staff ? staffPages : studentPages;
