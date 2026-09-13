@@ -1,10 +1,10 @@
-// Student 360 - Staff workspace pages (education-expert).
-import { useEffect, useState } from "react";
-'import { Card, Loading, Empty } from "./shared";
-import SurveyManagementPage from "./SurveyManagementPage";'
-import GraphView from "../../components/GraphView";
+// Student 360 - Staff workspace pages (overview/students/engagement/risk/interventions/feedback/graph/votes).
+import { useEffect, useMemo, useState } from "react";
+import { Card, Loading, Empty } from "./shared";
+import SurveyManagementPage from "./SurveyManagementPage";
+import VoteStatsCard from "../../components/VoteStatsCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 const HEADERS = () => ({ "X-Student-Number": localStorage.getItem("s360_student_number") || "" });
 
 export function StaffOverviewPage() {
@@ -63,26 +63,21 @@ export function StaffStudentsPage() {
   return (
     <div className="s360-page">
       <h2>👨‍🎓 دانشجویان</h2>
-      <input placeholder="جستجو (نام یا شماره دانشجویی)..."
-             value={q} onChange={(e) => setQ(e.target.value)}
+      <input placeholder="جستجو..." value={q} onChange={(e) => setQ(e.target.value)}
              style={{ width: "100%", padding: ".5rem", borderRadius: 8, border: "1px solid #d1d5db", marginBottom: ".8rem", fontFamily: "inherit" }} />
-      {filtered.length === 0 ? <Empty>دانشجویی یافت نشد</Empty> : (
-        <table className="s360-table">
-          <thead><tr><th>شماره</th><th>نام</th><th>رشته</th><th>وضعیت</th><th>GPA وزنی</th><th>واحد</th></tr></thead>
-          <tbody>
-            {filtered.map((r) => (
-              <tr key={r.id}>
-                <td>{r.student_number}</td>
-                <td><b>{r.full_name || "-"}</b></td>
-                <td>{r.program || "-"}</td>
-                <td>{r.student_status || "-"}</td>
-                <td>{r.weighted_gpa != null ? <b>{r.weighted_gpa}</b> : "-"}</td>
-                <td>{r.total_credits ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <table className="s360-table">
+        <thead><tr><th>شماره</th><th>نام</th><th>رشته</th><th>وضعیت</th><th>GPA</th><th>واحد</th></tr></thead>
+        <tbody>
+          {filtered.map((r) => (
+            <tr key={r.id}>
+              <td>{r.student_number}</td><td><b>{r.full_name || "-"}</b></td>
+              <td>{r.program || "-"}</td><td>{r.student_status || "-"}</td>
+              <td>{r.weighted_gpa != null ? <b>{r.weighted_gpa}</b> : "-"}</td>
+              <td>{r.total_credits ?? "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -98,25 +93,19 @@ export function StaffEngagementPage() {
   return (
     <div className="s360-page">
       <h2>📈 تعامل دانشجویان (۳۰ روز)</h2>
-      {items.length === 0 ? <Empty>داده تعاملی موجود نیست</Empty> : (
-        <table className="s360-table">
-          <thead><tr><th>#</th><th>کاربر</th><th>شاخص تعامل</th><th>رویدادها</th><th>روز فعال</th><th>تعامل عمیق</th><th>آخرین فعالیت</th></tr></thead>
-          <tbody>
-            {items.map((r, i) => (
-              <tr key={r.student_ref}>
-                <td>{i + 1}</td>
-                <td><b>{r.student_ref}</b></td>
-                <td><span style={{ color: color(r.score), fontWeight: 700 }}>{r.score}</span></td>
-                <td>{r.events}</td>
-                <td>{r.active_days}</td>
-                <td>{r.deep_actions}</td>
-                <td>{r.last_activity ? new Date(r.last_activity).toLocaleString("fa-IR") : "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <p className="s360-hint">منبع: event_log — شاخص ترکیبی از فراوانی، پیوستگی و عمق تعامل.</p>
+      <table className="s360-table">
+        <thead><tr><th>#</th><th>کاربر</th><th>شاخص</th><th>رویدادها</th><th>روز فعال</th><th>آخرین</th></tr></thead>
+        <tbody>
+          {items.map((r, i) => (
+            <tr key={r.student_ref}>
+              <td>{i + 1}</td><td><b>{r.student_ref}</b></td>
+              <td style={{ color: color(r.score), fontWeight: 700 }}>{r.score}</td>
+              <td>{r.events}</td><td>{r.active_days}</td>
+              <td>{r.last_activity ? new Date(r.last_activity).toLocaleString("fa-IR") : "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -133,34 +122,24 @@ export function StaffRiskPage() {
   return (
     <div className="s360-page">
       <h2>⚠️ هشدار زودهنگام ریسک تحصیلی</h2>
-      {items.length === 0 ? <Empty>دانشجویی موجود نیست</Empty> : (
-        <table className="s360-table">
-          <thead><tr><th>دانشجو</th><th>ریسک</th><th>GPA</th><th>مردودی</th><th>مشروطی</th><th>تعامل</th><th></th></tr></thead>
-          <tbody>
-            {items.map((r) => (
-              <tr key={r.student_number}>
-                <td><b>{r.student_name || "-"} ({r.student_number})</b></td>
-                <td><span style={{ color: color(r.risk_level), fontWeight: 700 }}>
-                  {r.risk_score} — {r.risk_level}</span></td>
-                <td>{r.gpa ?? "-"}</td>
-                <td>{r.failed_credits}</td>
-                <td>{r.probation_count}</td>
-                <td>{r.engagement_score}</td>
-                <td><button onClick={() => setOpen(open === r.student_number ? null : r.student_number)}>
-                  {open === r.student_number ? "بستن" : "جزئیات"}</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <table className="s360-table">
+        <thead><tr><th>دانشجو</th><th>ریسک</th><th>GPA</th><th>مردودی</th><th>مشروطی</th><th>تعامل</th><th></th></tr></thead>
+        <tbody>
+          {items.map((r) => (
+            <tr key={r.student_number}>
+              <td><b>{r.student_name || "-"} ({r.student_number})</b></td>
+              <td><span style={{ color: color(r.risk_level), fontWeight: 700 }}>{r.risk_score} — {r.risk_level}</span></td>
+              <td>{r.gpa ?? "-"}</td><td>{r.failed_credits}</td><td>{r.probation_count}</td><td>{r.engagement_score}</td>
+              <td><button onClick={() => setOpen(open === r.student_number ? null : r.student_number)}>جزئیات</button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       {items.filter((r) => open === r.student_number).map((r) => (
-        <Card key={"d" + r.student_number} title={`دلایل ریسک — ${r.student_name || r.student_number}`}>
-          {r.reasons?.length === 0 ? <p>عاملی یافت نشد ✅</p> : (
-            <ul className="eng-recs">{r.reasons.map((x, i) => <li key={i}>{x}</li>)}</ul>
-          )}
+        <Card key={"d" + r.student_number} title={`دلایل — ${r.student_name || r.student_number}`}>
+          <ul className="eng-recs">{(r.reasons || []).map((x, i) => <li key={i}>{x}</li>)}</ul>
           <b>اقدام پیشنهادی:</b>
           <ul className="eng-recs">{(r.suggested_actions || []).map((x, i) => <li key={i}>{x}</li>)}</ul>
-          <p className="s360-hint">{r.disclaimer}</p>
         </Card>
       ))}
     </div>
@@ -171,93 +150,68 @@ export function StaffInterventionsPage() {
   const [items, setItems] = useState(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(null);
   const [form, setForm] = useState({ id: null, status: "reviewed", note: "" });
 
   const load = () =>
     fetch(`${API_BASE}/api/intervention/list`, { headers: HEADERS() })
       .then((r) => r.json()).then((j) => setItems(j.items || [])).catch(() => setItems([]));
-  useEffect(() => { load(); }, []);
+  useEffect(load, []);
 
   async function runScan() {
     setBusy(true); setMsg("");
     try {
       const j = await fetch(`${API_BASE}/api/intervention/run`, { method: "POST", headers: HEADERS() }).then((r) => r.json());
-      setMsg("اسکن کامل شد — جدید: " + (j.created || []).length + " | موجود: " + (j.skipped || []).length);
+      setMsg("اسکن شد — جدید: " + (j.created || []).length);
       load();
-    } catch { setMsg("خطا در اجرای اسکن"); }
-    finally { setBusy(false); }
+    } finally { setBusy(false); }
   }
 
   async function submitReview(id) {
     try {
       await fetch(`${API_BASE}/api/intervention/${id}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...HEADERS() },
-        body: JSON.stringify({ status: form.status, note: form.note, reviewer: localStorage.getItem("s360_student_number") || "staff" }),
-      });
-      setForm({ id: null, status: "reviewed", note: "" });
-      setMsg("بررسی ثبت شد ✅");
-      load();
-    } catch { setMsg("خطا در ثبت بررسی"); }
+        method: "POST", headers: { "Content-Type": "application/json", ...HEADERS() },
+        body: JSON.stringify({ status: form.status, note: form.note, reviewer: localStorage.getItem("s360_student_number") || "staff" }) });
+      setForm({ id: null, status: "reviewed", note: "" }); setMsg("✅ ثبت شد"); load();
+    } catch { setMsg("خطا"); }
   }
 
   const badge = (l) => (l === "بالا" ? "risk-high" : l === "متوسط" ? "risk-mid" : "risk-low");
-
   return (
     <div className="s360-page">
       <h2>🚨 مداخله‌های حمایتی</h2>
-      <div style={{ display: "flex", gap: ".6rem", alignItems: "center", marginBottom: ".8rem", flexWrap: "wrap" }}>
-        <button onClick={runScan} disabled={busy}>{busy ? "..." : "🔍 اسکن ریسک و تولید مداخله"}</button>
+      <div style={{ display: "flex", gap: ".6rem", alignItems: "center", marginBottom: ".8rem" }}>
+        <button onClick={runScan} disabled={busy}>🔍 اسکن ریسک</button>
         {msg && <span className="s360-hint">{msg}</span>}
       </div>
-      {!items ? <Loading /> : items.length === 0 ? <Empty>موردی نیست — دکمه اسکن را بزنید</Empty> : (
+      {!items ? <Loading /> : items.length === 0 ? <Empty>موردی نیست</Empty> : (
         <table className="s360-table">
-          <thead><tr><th>دانشجو</th><th>ریسک</th><th>وضعیت</th><th>ثبت</th><th></th></tr></thead>
+          <thead><tr><th>دانشجو</th><th>ریسک</th><th>وضعیت</th><th></th></tr></thead>
           <tbody>
             {items.map((it) => (
               <tr key={it.id}>
                 <td><b>{it.student_name || "-"} ({it.student_number})</b></td>
                 <td><span className={`risk-badge ${badge(it.risk_level)}`}>{it.risk_score} — {it.risk_level}</span></td>
                 <td>{it.status_label}{it.reviewed_by ? ` (${it.reviewed_by})` : ""}</td>
-                <td>{it.created_at ? new Date(it.created_at).toLocaleString("fa-IR") : "-"}</td>
-                <td>
-                  <button onClick={() => setOpen(open === it.id ? null : it.id)}>جزئیات</button>{" "}
-                  <button onClick={() => setForm({ id: it.id, status: it.status === "open" ? "reviewed" : it.status, note: it.review_note || "" })}>بررسی</button>
-                </td>
+                <td><button onClick={() => setForm({ id: it.id, status: it.status === "open" ? "reviewed" : it.status, note: it.review_note || "" })}>بررسی</button></td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-
-      {items && items.filter((it) => open === it.id).map((it) => (
-        <Card key={"d" + it.id} title={"دلایل و اقدامات — " + (it.student_name || it.student_number)}>
-          <b>دلایل:</b>
-          <ul className="eng-recs">{(it.reasons || []).map((x, i) => <li key={i}>{x}</li>)}</ul>
-          <b>اقدامات پیشنهادی:</b>
-          <ul className="eng-recs">{(it.suggested_actions || []).map((x, i) => <li key={i}>{x}</li>)}</ul>
-        </Card>
-      ))}
-
-      {form.id != null && items && items.filter((it) => it.id === form.id).map((it) => (
-        <Card key={"f" + it.id} title={"ثبت بررسی — " + (it.student_name || it.student_number)}>
+      {form.id != null && (
+        <Card title="ثبت بررسی">
           <div className="interv-form">
             <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               <option value="in_progress">در حال پیگیری</option>
               <option value="reviewed">بررسی شد</option>
               <option value="closed">بسته شد</option>
-              <option value="open">بازگشت به صف</option>
             </select>
-            <textarea rows={2} placeholder="یادداشت بررسی (برای دانشجو نمایش داده می‌شود)"
+            <textarea rows={2} placeholder="یادداشت (برای دانشجو نمایش داده می‌شود)"
                       value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
-            <button onClick={() => submitReview(it.id)}>ثبت</button>
-            <button className="interv-cancel" onClick={() => setForm({ id: null, status: "reviewed", note: "" })}>انصراف</button>
+            <button onClick={() => submitReview(form.id)}>ثبت</button>
           </div>
-          <p className="s360-hint">یادداشت شما در کارت «پیگیری کارشناس» دانشجو دیده می‌شود.</p>
         </Card>
-      ))}
-      <p className="s360-hint">مداخله‌ها صرفاً حمایتی هستند و مبنای هیچ تصمیم تنبیهی خودکار نیستند.</p>
+      )}
     </div>
   );
 }
@@ -266,97 +220,33 @@ export function StaffFeedbackPage() {
   const [q, setQ] = useState(null);
   const [insight, setInsight] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [days, setDays] = useState(30);
-
   const load = () =>
-    fetch(`${API_BASE}/api/feedback/quality?days=${days}`, { headers: HEADERS() })
+    fetch(`${API_BASE}/api/feedback/quality?days=30`, { headers: HEADERS() })
       .then((r) => r.json()).then(setQ).catch(() => setQ({ error: true }));
-  useEffect(load, [days]);
-
-  async function analyze() {
-    setBusy(true);
-    try {
-      const j = await fetch(`${API_BASE}/api/feedback/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...HEADERS() },
-        body: JSON.stringify({ days }),
-      }).then((r) => r.json());
-      setInsight(j);
-    } catch { setInsight(null); }
-    finally { setBusy(false); load(); }
-  }
-
-  const useLatest = !insight && q && q.latest_insight;
-  const shown = insight || (useLatest ? { ...q.latest_insight, stats: q } : null);
-
+  useEffect(load, []);
   if (!q) return <Loading />;
   return (
     <div className="s360-page">
-      <h2>💬 کیفیت پاسخ‌ها و بازخوردها</h2>
-      <div style={{ display: "flex", gap: ".5rem", alignItems: "center", marginBottom: ".8rem", flexWrap: "wrap" }}>
-        <select value={days} onChange={(e) => setDays(+e.target.value)}
-                style={{ padding: ".4rem", borderRadius: 8, border: "1px solid #d1d5db", fontFamily: "inherit" }}>
-          <option value={30}>۳۰ روز اخیر</option>
-          <option value={60}>۶۰ روز اخیر</option>
-          <option value={90}>۹۰ روز اخیر</option>
-        </select>
-        <button onClick={analyze} disabled={busy}>{busy ? "..." : "🤖 تحلیل هوشمند الگوها (LLM)"}</button>
-        <span className="s360-hint">داده: {q.total_conversations} گفتگو | {q.ai_events} رویداد AI</span>
-      </div>
-
+      <h2>💬 کیفیت پاسخ‌ها</h2>
       <div className="s360-grid-2">
-        <Card title="😍 رضایت کاربران">
+        <Card title="رضایت کاربران">
           <div className="s360-big-number">{q.satisfaction_pct != null ? q.satisfaction_pct + "٪" : "-"}</div>
           <div className="s360-kv"><span>👍 مفید:</span><b>{q.helpful}</b></div>
           <div className="s360-kv"><span>👎 غیرمفید:</span><b>{q.not_helpful}</b></div>
-          <div className="s360-kv"><span>بدون بازخورد:</span><b>{q.total_conversations - q.with_feedback}</b></div>
         </Card>
-        <Card title="⚠️ سیگنال‌های کیفیت">
-          <div className="s360-kv"><span>پاسخ‌های کم‌اطمینان:</span><b>{q.low_confidence}</b></div>
-          <div className="s360-kv"><span>رویداد AI کم‌اطمینان:</span><b>{q.ai_low_conf_events ?? "-"}</b></div>
-          <div className="s360-kv"><span>مجموع گفتگوها:</span><b>{q.total_conversations}</b></div>
+        <Card title="سیگنال‌های کیفیت">
+          <div className="s360-kv"><span>پاسخ کم‌اطمینان:</span><b>{q.low_confidence}</b></div>
+          <div className="s360-kv"><span>رویداد AI:</span><b>{q.ai_events}</b></div>
         </Card>
       </div>
-
-      {shown && (
-        <Card title={`🤖 بینش تحلیلی (${shown.engine === "llm" ? "LLM" : "قاعده‌محور"})`}>
-          {shown.summary && <p><b>{shown.summary}</b></p>}
-          {(shown.insight?.themes || []).length > 0 && (
-            <>
-              <b>مضمون‌های نارضایتی:</b>
-              <div className="eng-chips" style={{ margin: ".4rem 0" }}>
-                {shown.insight.themes.map((t, i) => (
-                  <span key={i} className="mart-chip" title={t.example}>{t.theme}{t.count ? ` (${t.count})` : ""}</span>
-                ))}
-              </div>
-            </>
-          )}
-          {(shown.insight?.recommendations || []).length > 0 && (
-            <>
-              <b>توصیه‌های محصولی:</b>
-              <ul className="eng-recs">{shown.insight.recommendations.map((r, i) => <li key={i}>{r}</li>)}</ul>
-            </>
-          )}
-        </Card>
-      )}
-
-      <Card title="👎 پرسش‌های نارضایتی‌ساز (جدیدترین)">
+      <Card title="👎 پرسش‌های نارضایتی‌ساز">
         {(q.disliked || []).length === 0 ? <Empty>بازخورد منفی ثبت نشده ✅</Empty> : (
           <table className="s360-table">
-            <thead><tr><th>پرسش</th><th>دسته (قاعده‌محور)</th><th>زمان</th></tr></thead>
-            <tbody>{q.disliked.slice().reverse().map((d, i) => (
-              <tr key={i}><td>{d.q}</td><td>{d.cat}</td>
-              <td>{d.at ? new Date(d.at).toLocaleString("fa-IR") : "-"}</td></tr>
-            ))}</tbody>
+            <thead><tr><th>پرسش</th><th>دسته</th></tr></thead>
+            <tbody>{q.disliked.map((d, i) => <tr key={i}><td>{d.q}</td><td>{d.cat}</td></tr>)}</tbody>
           </table>
         )}
       </Card>
-
-      {(q.low_conf_questions || []).length > 0 && (
-        <Card title="🟡 پرسش‌های کم‌اطمینان (نیازمند مستندسازی)">
-          <ul className="eng-recs">{q.low_conf_questions.map((s, i) => <li key={i}>{s}</li>)}</ul>
-        </Card>
-      )}
     </div>
   );
 }
@@ -367,45 +257,34 @@ export function GraphExplorerPage() {
   const [query, setQuery] = useState("");
   const [cluster, setCluster] = useState(null);
   const [pf, setPf] = useState({ from: "", to: "", res: null });
-
   useEffect(() => {
-    fetch(`${API_BASE}/api/graph/stats`, { headers: HEADERS() })
-      .then((r) => r.json()).then(setStats).catch(() => setStats({ error: true }));
-    fetch(`${API_BASE}/api/graph/roots?limit=15`, { headers: HEADERS() })
-      .then((r) => r.json()).then((j) => setRoots(j.items || [])).catch(() => {});
+    fetch(`${API_BASE}/api/graph/stats`).then((r) => r.json()).then(setStats).catch(() => setStats({}));
+    fetch(`${API_BASE}/api/graph/roots?limit=15`).then((r) => r.json()).then((j) => setRoots(j.items || [])).catch(() => {});
   }, []);
-
   async function lookup(code) {
     if (!code) return;
-    const j = await fetch(`${API_BASE}/api/graph/course/${encodeURIComponent(code)}`,
-      { headers: HEADERS() }).then((r) => r.json()).catch(() => ({ error: true }));
+    const j = await fetch(`${API_BASE}/api/graph/course/${encodeURIComponent(code)}`).then((r) => r.json()).catch(() => ({ error: true }));
     setCluster(j);
   }
-
   async function findPath() {
     if (!pf.from || !pf.to) return;
-    const j = await fetch(
-      `${API_BASE}/api/graph/path?from=${encodeURIComponent(pf.from)}&to=${encodeURIComponent(pf.to)}`,
-      { headers: HEADERS() }).then((r) => r.json()).catch(() => ({ found: false }));
+    const j = await fetch(`${API_BASE}/api/graph/path?from=${encodeURIComponent(pf.from)}&to=${encodeURIComponent(pf.to)}`)
+      .then((r) => r.json()).catch(() => ({ found: false }));
     setPf({ ...pf, res: j });
   }
-
   if (!stats) return <Loading />;
   return (
     <div className="s360-page">
       <h2>🕸️ گراف دانش دروس</h2>
       <div className="mart-chips">
         <span className="mart-chip">درس: {stats.courses}</span>
-        <span className="mart-chip">مهارت: {stats.skills}</span>
         <span className="mart-chip">یال پیش‌نیاز: {stats.prereq_edges}</span>
-        <span className="mart-chip">درس شروع (ریشه): {stats.roots_count}</span>
-        <span className="mart-chip">اجزا: {stats.components}</span>
+        <span className="mart-chip">ریشه: {stats.roots_count}</span>
       </div>
-
-      <Card title="🔍 کاوش یک درس (کد یا عنوان)">
+      <Card title="🔍 کاوش یک درس">
         <div className="s360-form-row">
-          <input placeholder="مثلاً 1044 یا ریاضی عمومی 1 یا CS499"
-                 value={query} onChange={(e) => setQuery(e.target.value)}
+          <input placeholder="کد یا عنوان درس..." value={query}
+                 onChange={(e) => setQuery(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && lookup(query)} />
           <button onClick={() => lookup(query)}>کاوش</button>
         </div>
@@ -413,56 +292,110 @@ export function GraphExplorerPage() {
           <div className="s360-guide">
             <h4>{cluster.code} — {cluster.title}</h4>
             <div className="s360-kv"><span>پیش‌نیاز مستقیم:</span><b>{cluster.direct_prereqs?.join("، ") || "-"}</b></div>
-            <div className="s360-kv"><span>پیش‌نیازهای بازگشتی:</span><b>{cluster.all_prereqs_recursive?.length} درس</b>
-              <small className="s360-hint"> ({cluster.all_prereqs_recursive?.slice(0, 8).join("، ")}{cluster.all_prereqs_recursive?.length > 8 ? "..." : ""})</small>
-            </div>
-            <div className="s360-kv"><span>باز می‌کند:</span><b>{cluster.unlocks_count} درس</b>
-              <small className="s360-hint"> ({cluster.direct_dependents?.slice(0, 6).join("، ")}{cluster.direct_dependents?.length > 6 ? "..." : ""})</small>
-            </div>
-            {cluster.conditions?.length > 0 && (
-              <div className="s360-kv"><span>شرط‌های واحدی:</span><b>{cluster.conditions.join("، ")}</b></div>
-            )}
+            <div className="s360-kv"><span>باز می‌کند:</span><b>{cluster.unlocks_count} درس</b></div>
             <div className="s360-kv"><span>مهارت‌ها:</span><b>{cluster.skills?.join("، ") || "-"}</b></div>
-            <div style={{ marginTop: ".8rem" }}>
-              <b className="s360-hint">🗺️ نمودار اطراف این درس (پیش‌نیازها و مهارت‌ها):</b>
-              <GraphView code={cluster.code} depth={2} />
-            </div>
           </div>
         )}
-        {cluster?.error && <p className="s360-error">درس در گراف یافت نشد</p>}
+        {cluster?.error && <p className="s360-error">درس یافت نشد</p>}
       </Card>
-
-      <Card title="🧭 مسیر یادگیری بین دو درس">
+      <Card title="🧭 مسیر یادگیری">
         <div className="s360-form-row">
-          <input placeholder="از (مثلاً ریاضی عمومی 1)" value={pf.from}
-                 onChange={(e) => setPf({ ...pf, from: e.target.value })} />
-          <input placeholder="تا (مثلاً پایگاه داده)" value={pf.to}
-                 onChange={(e) => setPf({ ...pf, to: e.target.value })} />
+          <input placeholder="از..." value={pf.from} onChange={(e) => setPf({ ...pf, from: e.target.value })} />
+          <input placeholder="تا..." value={pf.to} onChange={(e) => setPf({ ...pf, to: e.target.value })} />
           <button onClick={findPath}>یافتن مسیر</button>
         </div>
         {pf.res && pf.res.found && (
-          <ol className="eng-recs">
-            {pf.res.path.map((s) => <li key={s.i}><b>{s.title}</b> ({s.code})</li>)}
-          </ol>
+          <ol className="eng-recs">{pf.res.path.map((s) => <li key={s.i}><b>{s.title}</b> ({s.code})</li>)}</ol>
         )}
-        {pf.res && !pf.res.found && <Empty>{pf.res.note || pf.res.error || "مسیری یافت نشد"}</Empty>}
+        {pf.res && !pf.res.found && <Empty>مسیری یافت نشد</Empty>}
       </Card>
-
-      <Card title="🌱 دروس شروع (بیشترین گشایش)">
+      <Card title="🌱 دروس شروع">
         <table className="s360-table">
-          <thead><tr><th>کد</th><th>درس</th><th>باز می‌کند</th><th></th></tr></thead>
+          <thead><tr><th>کد</th><th>درس</th><th>باز می‌کند</th></tr></thead>
           <tbody>{roots.map((r) => (
-            <tr key={r.code}>
-              <td>{r.code}</td><td><b>{r.title}</b></td><td>{r.unlocks} درس</td>
-              <td><button onClick={() => { setQuery(r.code); lookup(r.code); }}>کاوش</button></td>
-            </tr>
-          ))}</tbody>
+            <tr key={r.code}><td>{r.code}</td><td><b>{r.title}</b></td><td>{r.unlocks}</td></tr>))}</tbody>
         </table>
       </Card>
     </div>
   );
 }
 
+export function StaffVotesPage() {
+  const [type, setType] = useState("request");
+  const [term, setTerm] = useState("1405-1");
+  const [all, setAll] = useState(null);
+  const [active, setActive] = useState({});
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
 
+  const load = () => {
+    fetch(`${API_BASE}/api/professor/course-options`).then((r) => r.json())
+      .then((j) => setAll(j.items || [])).catch(() => setAll([]));
+    fetch(`${API_BASE}/api/vote-polls/active?survey_type=${type}&term=${term}`)
+      .then((r) => r.json()).then((j) => {
+        const m = {};
+        (j.items || []).forEach((i) => { m[i.course_id] = true; });
+        setActive(m);
+      }).catch(() => setActive({}));
+  };
+  useEffect(load, [type, term]);
 
+  async function toggle(courseId) {
+    setBusy(true);
+    try {
+      await fetch(`${API_BASE}/api/vote-polls/update`, {
+        method: "PUT", headers: HEADERS(),
+        body: JSON.stringify({ course_id: courseId, survey_type: type,
+                               term, is_active: !active[courseId] }) });
+      setActive((m) => ({ ...m, [courseId]: !active[courseId] }));
+    } finally { setBusy(false); }
+  }
 
+  const filtered = useMemo(() => {
+    const qn = q.trim().toLowerCase();
+    if (!qn) return (all || []).slice(0, 60);
+    return (all || []).filter((c) =>
+      c.title.toLowerCase().includes(qn) || String(c.code).includes(qn)).slice(0, 60);
+  }, [all, q]);
+
+  const activeCount = Object.values(active).filter(Boolean).length;
+  return (
+    <div className="s360-page">
+      <h2>⚙️ مدیریت نظرسنجی دروس</h2>
+      <div className="s360-form-row" style={{ margin: ".6rem 0" }}>
+        <select value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="request">💡 پیشنهاد/درخواست درس</option>
+          <option value="rating">⭐ امتیازدهی به برنامه</option>
+        </select>
+        <select value={term} onChange={(e) => setTerm(e.target.value)}>
+          <option value="1405-1">ترم 1405-1</option>
+          <option value="1404-2">ترم 1404-2</option>
+        </select>
+        <span className="mart-chip" style={{ color: "#15803d" }}>
+          ✅ {activeCount} درس فعال از {all ? all.length : 0}
+        </span>
+      </div>
+      <input placeholder="جستجوی درس..." value={q} onChange={(e) => setQ(e.target.value)}
+             style={{ width: "100%", padding: ".5rem", borderRadius: 8,
+                      border: "1px solid #d1d5db", marginBottom: ".8rem", fontFamily: "inherit" }} />
+      <div className="sv-cards">
+        {(filtered || []).map((c) => (
+          <div key={c.id} className={"sv-card" + (active[c.id] ? " selected" : "")}>
+            <div className="sv-card-head">
+              <span className="sv-code">{c.code}</span>
+              {active[c.id] && <span className="sv-badge sel">فعال</span>}
+            </div>
+            <h4>{c.title}</h4>
+            <div className="hub-actions">
+              <button className={active[c.id] ? "hub-del" : "hub-btn like"}
+                      disabled={busy} onClick={() => toggle(c.id)}>
+                {active[c.id] ? "⛔ لغو" : "✅ فعال‌سازی"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <VoteStatsCard title="📊 آمار درخواست‌های ارائه" />
+    </div>
+  );
+}

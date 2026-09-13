@@ -354,7 +354,7 @@ except Exception as _v_err:
 
 try:
     from app.api.routes_vote_polls import router as vote_polls_router
-    app.include_router(vote_polls_router, prefix="/api", tags=["Vote Polls"])
+    app.include_router(vote_polls_router, tags=["Vote Polls"])
 except Exception as _vp_err:
     print(f"WARNING: vote polls router failed: {_vp_err}")
 
@@ -366,7 +366,7 @@ except Exception as _pr_err:
 
 try:
     from app.api.routes_ratings import router as ratings_router
-    app.include_router(ratings_router, prefix="/api", tags=["Ratings"])
+    app.include_router(ratings_router, tags=["Ratings"])
 except Exception as _rt_err:
     print(f"WARNING: ratings router failed: {_rt_err}")
 
