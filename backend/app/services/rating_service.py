@@ -4,7 +4,7 @@ from sqlalchemy import func
 from fastapi import HTTPException
 
 from app.models.course_rating import CourseRating
-from app.models.student import Student
+from app.models.student360 import Student
 from app.models.schedule import ScheduledClass  # تغییر از Schedule به ScheduledClass
 from app.schemas.course_rating import CourseRatingCreate
 

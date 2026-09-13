@@ -4,7 +4,7 @@ from fastapi import HTTPException  # ← این خط را اضافه کنید
 import json  # ← در صورت استفاده از json.dumps/loads
 
 from app.models.course_proposal import CourseProposal
-from app.models.student import Student
+from app.models.student360 import Student
 from app.schemas.course_proposal import CourseProposalCreate, CourseProposalResponse
 
 

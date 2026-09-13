@@ -4,7 +4,7 @@ from sqlalchemy import func
 from fastapi import HTTPException
 
 from app.models.course_vote import CourseVote
-from app.models.student import Student
+from app.models.student360 import Student
 from app.models.course import UniqueCourse  # تغییر از Course به UniqueCourse
 from app.schemas.course_vote import CourseVoteCreate
 

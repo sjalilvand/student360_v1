@@ -8,7 +8,7 @@ class CourseVote(Base):
     __tablename__ = "course_votes"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("stu_students.id"), nullable=False)
     course_id = Column(Integer, ForeignKey("unique_courses.id"), nullable=False)  # تغییر به unique_courses
     vote_type = Column(String(20), nullable=False)  # "like" یا "request"
     term = Column(String(20), nullable=False)

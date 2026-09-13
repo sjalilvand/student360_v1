@@ -8,7 +8,7 @@ class CourseRating(Base):
     __tablename__ = "course_ratings"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("stu_students.id"), nullable=False)
     schedule_id = Column(Integer, ForeignKey("scheduled_classes.id"), nullable=False)  # تغییر به scheduled_classes
     rating = Column(String(20), nullable=False)  # excellent, good, average, weak, very_weak
     comment = Column(Text, nullable=True)
