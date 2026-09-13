@@ -1,4 +1,4 @@
-// Student 360 - portal shell: role-aware. FINAL consolidated (all menus).
+// Student 360 - portal shell: role-aware. Consolidated v2 (votes menu included).
 import { useEffect, useState } from "react";
 import { getReminders } from "../../api/student360Api";
 import LoginPage from "./LoginPage";
@@ -8,6 +8,7 @@ import StudyPathPage from "./StudyPathPage";
 import AdaptiveQuizPage from "./AdaptiveQuizPage";
 import CareerPage from "./CareerPage";
 import TwinPage from "./TwinPage";
+import VoteManagement from "../VoteManagement";
 import {
   StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
   StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
@@ -46,6 +47,7 @@ const STAFF_MENU = [
   { id: "interventions", icon: "🚨", label: "مداخله‌های حمایتی" },
   { id: "feedback", icon: "💬", label: "کیفیت پاسخ‌ها" },
   { id: "graph", icon: "🕸", label: "گراف دروس" },
+  { id: "votes", icon: "🗳", label: "نظرسنجی دروس" },
   { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
 ];
 
@@ -89,6 +91,7 @@ export default function Student360Portal({ onExit }) {
     interventions: <StaffInterventionsPage />,
     feedback: <StaffFeedbackPage />,
     graph: <GraphExplorerPage />,
+    votes: <VoteManagement />,
     ai: <AiAssistantPage />,
   };
   const studentPages = {
@@ -148,4 +151,3 @@ export default function Student360Portal({ onExit }) {
     </div>
   );
 }
-
