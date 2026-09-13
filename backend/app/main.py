@@ -384,3 +384,10 @@ try:
     app.include_router(permissions_router, tags=["Access Control"])
 except Exception as _perm_err:
     print(f"WARNING: permissions router failed: {_perm_err}")
+
+# ===== Surveys (term feedback - auto-added) =====
+try:
+    from app.api.routes_surveys import router as surveys_router
+    app.include_router(surveys_router, tags=["Surveys"])
+except Exception as _sv_err:
+    print(f"WARNING: surveys router failed: {_sv_err}")

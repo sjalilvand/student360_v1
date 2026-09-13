@@ -1,239 +1,234 @@
-// Student 360 - Feedback hub v2.4 (my votes list + delete own vote/proposal).
+// Student 360 - Survey Hub v3: three surveys (before/mid/after planning).
 import { useEffect, useMemo, useState } from "react";
-import { Card, Disclaimer } from "./shared";
-import VoteStatsCard from "../../components/VoteStatsCard";
+import { Card, Disclaimer, Loading } from "./shared";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
-const HEADERS = () => ({
+const AUTH = () => ({
   "X-Student-Number": localStorage.getItem("s360_student_number") || "",
   "Content-Type": "application/json",
 });
 const TERMS = ["1405-1", "1404-2", "1404-1"];
-const ST_MAP = { pending: "در انتظار بررسی", approved: "تایید شده", rejected: "رد شده" };
-const VT_MAP = { like: "👍 می‌خواهم", request: "📌 درخواست ارائه" };
 
-export default function StudentFeedbackHub() {
-  const [tab, setTab] = useState("vote");
-  const [courses, setCourses] = useState([]);
-  const [studentId, setStudentId] = useState(null);
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState(null);
+/* ---------- Survey 1: request course offering (cards like legacy) ---------- */
+function RequestSurvey() {
+  const [items, setItems] = useState(null);
   const [term, setTerm] = useState(TERMS[0]);
-  const [desc, setDesc] = useState("");
   const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const [statsKey, setStatsKey] = useState(0);
-  const [mine, setMine] = useState([]);
-  const [myVotes, setMyVotes] = useState([]);
 
-  const refreshMine = () => {
-    fetch(`${API_BASE}/api/proposals/mine`, { headers: HEADERS() })
-      .then((r) => r.json()).then((j) => setMine(j.items || [])).catch(() => {});
-    fetch(`${API_BASE}/api/votes/mine`, { headers: HEADERS() })
-      .then((r) => r.json()).then((j) => setMyVotes(j.items || [])).catch(() => {});
-  };
+  const load = () =>
+    fetch(`${API_BASE}/api/vote-polls/active?survey_type=request&term=${term}`,
+          { headers: AUTH() })
+      .then((r) => r.json()).then((j) => setItems(j.items || [])).catch(() => setItems([]));
+  useEffect(load, [term]);
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/proposals/course-options`, { headers: HEADERS() })
-      .then((r) => r.json())
-      .then((d) => setCourses((d.items || []).filter((c) => c.id != null)))
-      .catch(() => setErr("خطا در دریافت لیست دروس"));
-    fetch(`${API_BASE}/api/votes/me-id`, { headers: HEADERS() })
-      .then((r) => r.json())
-      .then((j) => { if (j.student_id) setStudentId(j.student_id); })
-      .catch(() => {});
-    refreshMine();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const qn = q.trim().toLowerCase();
-    if (!qn) return courses.slice(0, 40);
-    return courses.filter((c) =>
-      c.title.toLowerCase().includes(qn) || String(c.code).includes(qn)
-    ).slice(0, 40);
-  }, [courses, q]);
-
-  async function submit(url, body) {
-    if (!studentId) { setErr("شناسه دانشجو هنوز آماده نیست"); return false; }
-    setBusy(true); setErr(""); setMsg("");
+  async function request(course) {
+    setBusy(true); setMsg("");
     try {
-      const sep = url.includes("?") ? "&" : "?";
-      const r = await fetch(`${url}${sep}student_id=${studentId}`, {
-        method: "POST", headers: HEADERS(), body: JSON.stringify(body),
-      });
+      const r = await fetch(`${API_BASE}/api/votes/?student_id=${localStorage.getItem("s360_student_number")}`, {
+        method: "POST", headers: AUTH(),
+        body: JSON.stringify({ course_id: course.course_id, vote_type: "request", term }) });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
-        throw new Error(det || ("HTTP " + r.status));
-      }
-      setStatsKey((k) => k + 1);
-      refreshMine();
-      setMsg("✅ با موفقیت ثبت شد.");
-      return true;
-    } catch (e) {
-      setErr("خطا: " + (e.message || ""));
-      return false;
-    } finally { setBusy(false); }
-  }
-
-  async function remove(url, id, what) {
-    setBusy(true); setErr(""); setMsg("");
-    try {
-      const r = await fetch(`${url}/${id}`, {
-        method: "DELETE", headers: HEADERS(),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
-        throw new Error(det || ("HTTP " + r.status));
-      }
-      setMsg(`✅ ${what} حذف شد.`);
-      setStatsKey((k) => k + 1);
-      refreshMine();
-    } catch (e) {
-      setErr("خطا: " + (e.message || ""));
-    } finally { setBusy(false); }
-  }
-
-  async function doVote(kind) {
-    if (!picked) { setErr("اول درس را انتخاب کنید"); return; }
-    const ok = await submit(`${API_BASE}/api/votes/`,
-      { course_id: picked.id, vote_type: kind, term });
-    if (ok) setMsg(`✅ رأی «${kind === "like" ? "می‌خواهم" : "ارائه شود"}» برای ${picked.title} ثبت شد.`);
-  }
-
-  async function doPropose() {
-    if (!picked) { setErr("اول درس را انتخاب کنید"); return; }
-    const ok = await submit(`${API_BASE}/api/proposals/`,
-      { term, course_ids: [picked.id], description: desc });
-    if (ok) { setMsg("✅ پیشنهاد شما ثبت شد."); setDesc(""); }
+      if (!r.ok) throw new Error(typeof j.detail === "string" ? j.detail : "خطا");
+      setMsg(`✅ درخواست ارائه «${course.title}» ثبت شد.`);
+      load();
+    } catch (e) { setMsg("خطا: " + e.message); }
+    finally { setBusy(false); }
   }
 
   return (
-    <div className="s360-page">
-      <h2>🗳 نظرسنجی و بازخورد دروس</h2>
-      <Disclaimer text="نظرات شما فقط برای برنامه‌ریزی آموزش استفاده می‌شود و به‌تنهایی موجب قطعیِ ارائه درس نمی‌گردد." />
-
-      <div className="s360-tabs-row">
-        <button className={tab === "vote" ? "active" : ""}
-                onClick={() => setTab("vote")}>👍 رأی به درس</button>
-        <button className={tab === "proposal" ? "active" : ""}
-                onClick={() => setTab("proposal")}>💡 پیشنهاد درس</button>
-        <button className={tab === "rating" ? "active" : ""}
-                onClick={() => setTab("rating")}>⭐ امتیاز کلاس</button>
+    <>
+      <div className="sv-filters">
+        <label>سال تحصیلی</label>
+        <select><option>1406 - 1405</option></select>
+        <label>نیمسال</label>
+        <select value={term} onChange={(e) => setTerm(e.target.value)}>
+          <option value="1405-1">مهر (نیمسال اول)</option>
+          <option value="1404-2">بهمن (نیمسال دوم)</option>
+        </select>
       </div>
-
-      {(msg || err) && <div className={err ? "s360-error" : "hub-ok"}>{err || msg}</div>}
-
-      {tab !== "rating" && (
-        <Card title="1️⃣ انتخاب درس (جستجو کنید)">
-          <div className="hub-picker">
-            <input placeholder="نام یا کد درس را بنویسید..."
-                   value={picked ? `${picked.title} (${picked.code})` : q}
-                   onFocus={() => { setPicked(null); setOpen(true); }}
-                   onChange={(e) => { setQ(e.target.value); setOpen(true); }} />
-            {open && !picked && (
-              <div className="hub-list">
-                {filtered.length === 0 && <div className="hub-empty">درسی یافت نشد</div>}
-                {filtered.map((c) => (
-                  <div key={c.id} className="hub-item"
-                       onClick={() => { setPicked(c); setOpen(false); }}>
-                    <b>{c.title}</b> <small>({c.code})</small>
-                  </div>
-                ))}
+      {msg && <div className={msg.startsWith("✅") ? "hub-ok" : "s360-error"}>{msg}</div>}
+      {!items ? <Loading /> : items.length === 0 ? (
+        <Card title="درس فعال"><p className="s360-hint">فعلاً درسی برای نظرسنجی فعال نشده است.</p></Card>
+      ) : (
+        <div className="sv-cards">
+          {items.map((c) => (
+            <div key={c.course_id} className={"sv-card" + (c.my_request ? " selected" : "")}>
+              <div className="sv-card-head">
+                <span className="sv-code">{c.code}</span>
+                {c.my_request ? <span className="sv-badge sel">لغو انتخاب شده</span>
+                              : <span className="sv-badge">فعال</span>}
               </div>
-            )}
-          </div>
-          <div className="s360-form-row" style={{ marginTop: ".6rem" }}>
-            <select value={term} onChange={(e) => setTerm(e.target.value)}>
-              {TERMS.map((t) => <option key={t} value={t}>ترم {t}</option>)}
-            </select>
-            {picked && <span className="mart-chip">انتخاب‌شده: {picked.title}</span>}
-          </div>
-        </Card>
-      )}
-
-      {tab === "vote" && (
-        <>
-          <Card title="2️⃣ رأی شما درباره این درس">
-            <div className="hub-actions">
-              <button className="hub-btn like" disabled={busy || !studentId || !picked}
-                      onClick={() => doVote("like")}>👍 این درس را می‌خواهم</button>
-              <button className="hub-btn req" disabled={busy || !studentId || !picked}
-                      onClick={() => doVote("request")}>📌 ارائه‌اش را درخواست می‌کنم</button>
+              <h4>{c.title}</h4>
+              <div className="sv-meta">
+                <span>گروه: <b>{c.code}</b></span>
+                <span>ظرفیت: <b>{c.capacity ?? 30}</b></span>
+                <span>مقاطع: <b>-</b></span>
+              </div>
+              <div className="sv-req-row">
+                <span>📝 درخواست‌ها: <b>{c.requests}</b></span>
+              </div>
+              <button className="sv-btn" disabled={busy}
+                      onClick={() => request(c)}>
+                {c.my_request ? "↺ لغو درخواست ارائه" : "✋ درخواست ارائه"}
+              </button>
             </div>
-          </Card>
-          <VoteStatsCard refreshKey={statsKey} title="📊 آمار رأی‌های ثبت‌شده" />
-          <Card title="🗳 رأی‌های من">
-            {myVotes.length === 0 ? (
-              <p className="s360-hint">هنوز رأیی ثبت نکرده‌اید.</p>
-            ) : (
-              <table className="s360-table">
-                <thead><tr><th>درس</th><th>نوع رأی</th><th>ترم</th><th>زمان</th><th></th></tr></thead>
-                <tbody>
-                  {myVotes.map((v) => (
-                    <tr key={v.id}>
-                      <td><b>{v.course_title || "-"}</b> <small>({v.course_code})</small></td>
-                      <td>{VT_MAP[v.vote_type] || v.vote_type}</td>
-                      <td>{v.term}</td>
-                      <td>{v.created_at ? new Date(v.created_at).toLocaleString("fa-IR") : "-"}</td>
-                      <td><button className="hub-del"
-                                  disabled={busy}
-                                  onClick={() => remove("/api/votes", v.id, "رأی")}>🗑</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
-        </>
+          ))}
+        </div>
       )}
+    </>
+  );
+}
 
-      {tab === "proposal" && (
-        <>
-          <Card title="2️⃣ توضیح پیشنهاد شما">
-            <textarea rows={3} placeholder="چرا این درس باید ارائه شود؟ (اختیاری)"
-                      value={desc} onChange={(e) => setDesc(e.target.value)} />
-            <div className="hub-actions">
-              <button className="hub-btn like" disabled={busy || !studentId || !picked}
-                      onClick={doPropose}>📨 ثبت پیشنهاد</button>
-            </div>
-          </Card>
-          <Card title="📋 پیشنهادهای من">
-            {mine.length === 0 ? (
-              <p className="s360-hint">هنوز پیشنهادی ثبت نکرده‌اید.</p>
-            ) : (
-              <table className="s360-table">
-                <thead><tr><th>ترم</th><th>دروس پیشنهادی</th><th>توضیح</th><th>وضعیت</th><th>زمان</th><th></th></tr></thead>
-                <tbody>
-                  {mine.map((m) => (
-                    <tr key={m.id}>
-                      <td>{m.term}</td>
-                      <td><b>{m.courses_display}</b></td>
-                      <td>{m.description || "-"}</td>
-                      <td>{ST_MAP[m.status] || m.status}</td>
-                      <td>{m.created_at ? new Date(m.created_at).toLocaleString("fa-IR") : "-"}</td>
-                      <td><button className="hub-del"
-                                  disabled={busy}
-                                  onClick={() => remove("/api/proposals", m.id, "پیشنهاد")}>🗑</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
-        </>
-      )}
+/* ---------- Survey 2: rate mid-term courses (stars) ---------- */
+function Stars({ value, onChange, readOnly }) {
+  return (
+    <div className="sv-stars">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span key={i} className={i <= value ? "on" : ""}
+              onClick={() => !readOnly && onChange(i)}>
+          {i <= value ? "★" : "☆"}
+        </span>
+      ))}
+    </div>
+  );
+}
 
-      {tab === "rating" && (
-        <Card title="⭐ امتیازدهی به کلاس‌ها">
-          <p className="s360-hint">
-            امتیازدهی به کلاس‌های برگزارشده پس از نهایی‌شدن برنامه هفتگی فعال می‌شود.
-          </p>
-        </Card>
+function RateSurvey() {
+  const [items, setItems] = useState(null);
+  const [term, setTerm] = useState(TERMS[0]);
+  const [drafts, setDrafts] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = () =>
+    fetch(`${API_BASE}/api/ratings/my-courses?term=${term}`, { headers: AUTH() })
+      .then((r) => r.json()).then((j) => setItems(j.items || [])).catch(() => setItems([]));
+  useEffect(load, [term]);
+
+  async function rate(course) {
+    const d = drafts[course.course_id] || {};
+    if (!d.rating) { setMsg("⚠️ اول امتیاز ستاره‌ای را انتخاب کنید"); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(`${API_BASE}/api/ratings/rate`, {
+        method: "POST", headers: AUTH(),
+        body: JSON.stringify({ course_id: course.course_id, rating: d.rating,
+                               comment: d.comment || null, term }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || "خطا");
+      setMsg(`✅ امتیاز «${course.title}» ثبت شد.`);
+      load();
+    } catch (e) { setMsg("خطا: " + e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <>
+      <div className="sv-filters">
+        <label>سال تحصیلی</label>
+        <select><option>1406 - 1405</option></select>
+      </div>
+      {msg && <div className={msg.startsWith("✅") ? "hub-ok" : "s360-error"}>{msg}</div>}
+      {!items ? <Loading /> : items.length === 0 ? (
+        <Card title="امتیازدهی"><p className="s360-hint">فعلاً درسی برای امتیازدهی فعال نشده است.</p></Card>
+      ) : (
+        <p className="s360-hint" style={{ margin: ".4rem 0" }}>
+          به برنامه‌های درسی که تجربه کرده‌اید، امتیاز دهید و نظر خود را بنویسید
+        </p>
       )}
+      {items && items.length > 0 && (
+        <div className="sv-cards">
+          {items.map((c) => {
+            const d = drafts[c.course_id] || { rating: c.my_rating || 0, comment: c.my_comment || "" };
+            return (
+              <div key={c.course_id} className="sv-card">
+                <div className="sv-card-head">
+                  <span className="sv-code">{c.code}</span>
+                  {c.my_rating && <span className="sv-badge sel">ثبت شده</span>}
+                </div>
+                <h4>{c.title}</h4>
+                <div className="sv-meta"><span>امتیاز شما:</span><Stars value={d.rating}
+                  onChange={(v) => setDrafts({ ...drafts, [c.course_id]: { ...d, rating: v } })} /></div>
+                <textarea rows={2} placeholder="نظر شما (اختیاری)..."
+                          value={d.comment}
+                          onChange={(e) => setDrafts({ ...drafts, [c.course_id]: { ...d, comment: e.target.value } })} />
+                <button className="sv-btn" disabled={busy}
+                        onClick={() => rate({ ...c, ...d })}>📝 ثبت امتیاز</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ---------- Survey 3: term program feedback ---------- */
+function TermFeedback() {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/surveys/term-feedback?term=1405-1`, { headers: AUTH() })
+      .then((r) => r.json()).then((j) => {
+        if (j.feedback) { setRating(j.feedback.rating || 0); setComment(j.feedback.comment || ""); }
+      }).catch(() => {});
+  }, []);
+
+  async function submit() {
+    if (!rating) { setMsg("⚠️ اول امتیاز را انتخاب کنید"); return; }
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch(`${API_BASE}/api/surveys/term-feedback`, {
+        method: "POST", headers: AUTH(),
+        body: JSON.stringify({ term: "1405-1", rating, comment: comment || null }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.detail || "خطا");
+      setMsg("✅ نظر شما درباره برنامه ترم ثبت شد.");
+    } catch (e) { setMsg("خطا: " + e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <>
+      <p className="s360-hint" style={{ margin: ".4rem 0" }}>
+        به برنامه‌ریزی درسی این ترم امتیاز دهید و نظر خود را بنویسید
+      </p>
+      {(msg) && <div className={msg.startsWith("✅") ? "hub-ok" : "s360-error"}>{msg}</div>}
+      <Card title="نظر شما درباره برنامه ترم جاری">
+        <div className="sv-meta" style={{ margin: ".4rem 0" }}><span>امتیاز شما:</span>
+          <Stars value={rating} onChange={setRating} /></div>
+        <textarea rows={3} placeholder="نظر شما در مورد این برنامه (اختیاری)..."
+                  value={comment} onChange={(e) => setComment(e.target.value)}
+                  style={{ width: "100%", padding: ".5rem", borderRadius: 8, border: "1px solid #d1d5db", fontFamily: "inherit" }} />
+        <div className="hub-actions">
+          <button className="hub-btn like" disabled={busy} onClick={submit}>📨 ثبت نظر</button>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+/* ---------- Hub ---------- */
+export default function StudentFeedbackHub() {
+  const [tab, setTab] = useState("s1");
+  return (
+    <div className="s360-page">
+      <h2>🗳 نظرسنجی‌های آموزشی</h2>
+      <div className="s360-tabs-row">
+        <button className={tab === "s1" ? "active" : ""}
+                onClick={() => setTab("s1")}>💡 پیشنهاد درس</button>
+        <button className={tab === "s2" ? "active" : ""}
+                onClick={() => setTab("s2")}>⭐ امتیازدهی به برنامه</button>
+        <button className={tab === "s3" ? "active" : ""}
+                onClick={() => setTab("s3")}>💬 نظر برنامه ترم</button>
+      </div>
+      {tab === "s1" && <RequestSurvey />}
+      {tab === "s2" && <RateSurvey />}
+      {tab === "s3" && <TermFeedback />}
     </div>
   );
 }
