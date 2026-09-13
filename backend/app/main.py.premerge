@@ -337,29 +337,3 @@ try:
     print("mart auto-refresh thread started")
 except Exception as _mrt_err:
     print(f"WARNING: mart thread failed: {_mrt_err}")
-
-
-# ===== Merged feature routers: votes / polls / proposals / ratings (auto-added) =====
-try:
-    from app.api.routes_votes import router as votes_router
-    app.include_router(votes_router, tags=["Votes"])
-except Exception as _v_err:
-    print(f"WARNING: votes router failed: {_v_err}")
-
-try:
-    from app.api.routes_vote_polls import router as vote_polls_router
-    app.include_router(vote_polls_router, tags=["Vote Polls"])
-except Exception as _vp_err:
-    print(f"WARNING: vote polls router failed: {_vp_err}")
-
-try:
-    from app.api.routes_proposals import router as proposals_router
-    app.include_router(proposals_router, tags=["Proposals"])
-except Exception as _pr_err:
-    print(f"WARNING: proposals router failed: {_pr_err}")
-
-try:
-    from app.api.routes_ratings import router as ratings_router
-    app.include_router(ratings_router, tags=["Ratings"])
-except Exception as _rt_err:
-    print(f"WARNING: ratings router failed: {_rt_err}")
