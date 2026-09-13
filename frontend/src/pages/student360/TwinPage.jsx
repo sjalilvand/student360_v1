@@ -22,13 +22,28 @@ export default function TwinPage() {
   const [res, setRes] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [expl, setExpl] = useState(null);
+  const [explBusy, setExplBusy] = useState(false);
 
   function setRow(i, k, v) {
     setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   }
 
+  async function explain() {
+    if (!res) return;
+    setExplBusy(true);
+    try {
+      const j = await fetch(`${API_BASE}/api/twin/explain`, {
+        method: "POST", headers: HEADERS(),
+        body: JSON.stringify({ simulation: res }),
+      }).then((r) => r.json());
+      setExpl(j);
+    } catch { setExpl({ explanation: "خطا در دریافت توضیح" }); }
+    finally { setExplBusy(false); }
+  }
+
   async function run() {
-    setLoading(true); setError(""); setRes(null);
+    setLoading(true); setError(""); setRes(null); setExpl(null);
     try {
       const courses = rows
         .filter((r) => +r.credits > 0)
@@ -86,6 +101,7 @@ export default function TwinPage() {
         <div className="twin-hint-row">
           <small className="s360-hint">ستون‌ها: نام درس | واحد | نمره مورد انتظار</small>
           <button onClick={run} disabled={loading}>{loading ? "..." : "🔮 شبیه‌سازی کن"}</button>
+          <button onClick={explain} disabled={loading || !res}>🤖 چرا این نتیجه؟</button>
         </div>
         {error && <p className="s360-error">{error}</p>}
       </Card>
@@ -121,9 +137,16 @@ export default function TwinPage() {
             </Card>
           )}
 
+          {expl && (
+            <Card title={`🤖 توضیح هوش مصنوعی (${expl.engine === "llm" ? "LLM" : "fallback"})`}>
+              <p style={{ lineHeight: 1.9, margin: 0 }}>{expl.explanation}</p>
+            </Card>
+          )}
+
           <p className="s360-hint">{res.disclaimer}</p>
         </>
       )}
     </div>
   );
 }
+
