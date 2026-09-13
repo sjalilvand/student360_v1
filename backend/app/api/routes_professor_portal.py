@@ -173,9 +173,9 @@ def professor_proposals_list(request: Request, db: Session = Depends(get_db)):
         return {"items": []}
     rows = db.execute(text(
         "SELECT id, unique_course_code, course_name, day_of_week, start_time, "
-        "end_time, notes, status, term_code, created_at "
+        "end_time, notes, status, term_code "
         "FROM teaching_preferences WHERE instructor_code = :c "
-        "ORDER BY created_at DESC LIMIT 100"), {"c": str(code)}).mappings().all()
+        "ORDER BY id DESC LIMIT 100"), {"c": str(code)}).mappings().all()
     return {"items": [dict(r) for r in rows]}
 
 
