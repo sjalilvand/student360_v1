@@ -1,0 +1,31 @@
+/* mart-dashboard.css - analytics overlay */
+.mart-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 9000; display: flex; align-items: stretch; justify-content: center; padding: 1rem; }
+.mart-panel { background: #fff; border-radius: 16px; width: min(1100px, 100%); overflow-y: auto; padding: 1.2rem 1.4rem; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.mart-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .8rem; }
+.mart-header h2 { margin: 0; font-size: 1.1rem; }
+.mart-actions { display: flex; gap: .5rem; }
+.mart-actions button { border: 1px solid #d1d5db; background: #f8fafc; border-radius: 8px; padding: .4rem .8rem; cursor: pointer; font-family: inherit; }
+.mart-actions button:hover { background: #eef2ff; }
+.mart-close { background: #fee2e2 !important; border-color: #fca5a5 !important; color: #b91c1c; }
+.mart-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 8px; padding: .6rem .9rem; }
+.mart-chips { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.mart-chip { background: #eef2ff; color: #3730a3; border-radius: 999px; padding: .25rem .7rem; font-size: .75rem; }
+.mart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; }
+.mart-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: .9rem; background: #fcfdff; }
+.mart-card h3 { margin: 0 0 .6rem; font-size: .95rem; color: #334155; }
+.mart-empty { color: #94a3b8; font-size: .85rem; text-align: center; padding: 1.5rem 0; }
+.mart-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.mart-table th, .mart-table td { border-bottom: 1px solid #e2e8f0; padding: .45rem .5rem; text-align: right; }
+.mart-table th { background: #f1f5f9; }
+/* mart-dashboard-jalali.css */
+.jal-nav { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .6rem; font-size: .8rem; color: #475569; }
+.jal-nav button { border: 1px solid #d1d5db; background: #f8fafc; border-radius: 6px; padding: .25rem .6rem; cursor: pointer; font-family: inherit; font-size: .75rem; }
+.jal-nav button:hover { background: #eef2ff; }
+.jal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.jal-head { text-align: center; font-size: .7rem; color: #94a3b8; padding: .2rem 0; }
+.jal-cell { position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f1f5f9; font-size: .8rem; color: #334155; }
+.jal-cell.empty { background: transparent; }
+.jal-cell small { position: absolute; bottom: 2px; inset-inline-end: 4px; font-size: .6rem; opacity: .9; }
+.jal-cell.today { outline: 2px solid #0ea5e9; outline-offset: 1px; font-weight: 700; }
+.mart-src { color: #94a3b8; font-weight: 400; font-size: .7rem; }
+

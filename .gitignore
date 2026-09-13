@@ -14,3 +14,21 @@ coverage.xml
 # IDE
 .vscode/
 .idea/
+.env
+# --- security & session (auto) ---
+*.db
+*.sqlite
+_trash_*/
+_diag_*.py
+_maint_*.py
+_fix_*.py
+_reset_*.py
+.runtime_port
+backend/.runtime.out.log
+backend/.runtime.err.log
+frontend/.vite.out.log
+frontend/.vite.err.log
+.freebuff/
+.coverage
+backend/.coverage
+*.pyc

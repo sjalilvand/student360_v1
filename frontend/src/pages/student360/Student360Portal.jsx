@@ -1,0 +1,146 @@
+// Student 360 - portal shell: role-aware (student portal vs staff workspace).
+// Final consolidated version: all menus (no more incremental patches).
+import { useEffect, useState } from "react";
+import { getReminders } from "../../api/student360Api";
+import LoginPage from "./LoginPage";
+import AiAssistantPage from "./AiAssistantPage";
+import BehaviorPage from "./BehaviorPage";
+import StudyPathPage from "./StudyPathPage";
+import AdaptiveQuizPage from "./AdaptiveQuizPage";
+import CareerPage from "./CareerPage";
+import {
+  StaffOverviewPage, StaffStudentsPage, StaffEngagementPage,
+  StaffRiskPage, StaffInterventionsPage, StaffFeedbackPage,
+} from "./StaffPages";
+import { track, trackPage } from "../../utils/eventTracker";
+import {
+  ProfilePage, RegulationsPage, GuidesPage, SelectionPage,
+  GraduationPage, CalendarPage, AlertsPage, QuizPage, ProfessorPage,
+} from "./Student360Pages";
+import "./student360.css";
+
+const STUDENT_MENU = [
+  { id: "profile", icon: "👤", label: "پروفایل هوشمند" },
+  { id: "behavior", icon: "🧠", label: "بینش‌های رفتاری" },
+  { id: "studypath", icon: "🗺️", label: "مسیر تحصیلی من" },
+  { id: "regulations", icon: "📜", label: "دستیار آیین‌نامه‌ای" },
+  { id: "guides", icon: "🗂️", label: "راهنمای فرایندها" },
+  { id: "selection", icon: "🧭", label: "دستیار انتخاب واحد" },
+  { id: "graduation", icon: "🎓", label: "بررسی فارغ‌التحصیلی" },
+  { id: "calendar", icon: "🗓️", label: "تقویم و یادآوری" },
+  { id: "alerts", icon: "🔔", label: "هشدارها" },
+  { id: "quiz", icon: "🧪", label: "کوییز هوشمند" },
+  { id: "adaptivequiz", icon: "🎯", label: "کوییز تطبیقی (AI)" },
+  { id: "career", icon: "💼", label: "پروفایل شغلی" },
+  { id: "professor", icon: "🤖", label: "استاد هوشمند" },
+  { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
+];
+
+const STAFF_MENU = [
+  { id: "overview", icon: "📊", label: "میز کار کارشناس" },
+  { id: "students", icon: "👨‍🎓", label: "دانشجویان" },
+  { id: "engagement", icon: "📈", label: "تعامل دانشجویان" },
+  { id: "risk", icon: "⚠️", label: "هشدار ریسک تحصیلی" },
+  { id: "interventions", icon: "🚨", label: "مداخله‌های حمایتی" },
+  { id: "ai", icon: "✨", label: "دستیار هوشمند (AI)" },
+];
+
+function isStaffRole(role) {
+  const r = (role || "").toLowerCase();
+  return r.includes("expert") || r.includes("staff") || r.includes("admin") || r.includes("manager");
+}
+
+export default function Student360Portal({ onExit }) {
+  const [user, setUser] = useState(() => {
+    const sn = localStorage.getItem("s360_student_number");
+    return sn ? { username: sn, role: localStorage.getItem("s360_role") || "" } : null;
+  });
+  const staff = isStaffRole(user?.role);
+  const MENU = staff ? STAFF_MENU : STUDENT_MENU;
+  const [page, setPage] = useState(staff ? "overview" : "profile");
+  const [reminders, setReminders] = useState(0);
+
+  useEffect(() => {
+    if (!user || staff) return;
+    getReminders().then((r) => setReminders(r.length)).catch(() => {});
+  }, [user, page, staff]);
+
+  useEffect(() => {
+    if (user) trackPage((staff ? "staff:" : "student:") + page);
+  }, [page, user, staff]);
+
+  if (!user) return <LoginPage onLogin={setUser} />;
+
+  function logout() {
+    track("logout");
+    ["s360_student_number", "s360_role", "s360_display_name", "s360_token"].forEach((k) => localStorage.removeItem(k));
+    setUser(null);
+  }
+
+  const staffPages = {
+    overview: <StaffOverviewPage />,
+    students: <StaffStudentsPage />,
+    engagement: <StaffEngagementPage />,
+    risk: <StaffRiskPage />,
+    interventions: <StaffInterventionsPage />,
+    ai: <AiAssistantPage />,
+  };
+  const studentPages = {
+    profile: <ProfilePage />,
+    behavior: <BehaviorPage />,
+    studypath: <StudyPathPage />,
+    regulations: <RegulationsPage />,
+    guides: <GuidesPage />,
+    selection: <SelectionPage />,
+    graduation: <GraduationPage />,
+    calendar: <CalendarPage />,
+    alerts: <AlertsPage />,
+    quiz: <QuizPage />,
+    adaptivequiz: <AdaptiveQuizPage />,
+    career: <CareerPage />,
+    professor: <ProfessorPage />,
+    ai: <AiAssistantPage />,
+  };
+  const pages = staff ? staffPages : studentPages;
+  const displayName = localStorage.getItem("s360_display_name") || user.username;
+
+  return (
+    <div className="s360-portal">
+      <aside className="s360-sidebar">
+        <div className="s360-logo">
+          <span className="s360-logo-icon">{staff ? "👨‍💼" : "🎓"}</span>
+          <div>
+            <h2>{staff ? "میز کار کارشناس" : "دانشجو ۳۶۰"}</h2>
+            <p>{staff ? "پنل آموزش" : "سامانه خدمات دانشجویی"}</p>
+          </div>
+        </div>
+        <nav className="s360-nav">
+          {MENU.map((m) => (
+            <button key={m.id}
+                    className={page === m.id ? "active" : ""}
+                    onClick={() => setPage(m.id)}>
+              <span>{m.icon}</span> {m.label}
+              {!staff && m.id === "calendar" && reminders > 0 && (
+                <span className="s360-nav-badge">{reminders}</span>
+              )}
+            </button>
+          ))}
+        </nav>
+        <div className="s360-sidebar-footer">
+          <p>👋 {displayName}</p>
+          <button onClick={logout}>خروج</button>
+          <button onClick={onExit} className="s360-exit">بازگشت به سامانه مدیریت</button>
+        </div>
+      </aside>
+      <main className="s360-main">
+        <header className="s360-header">
+          <h1>{MENU.find((m) => m.id === page)?.label}</h1>
+        </header>
+        <div className="s360-content">{pages[page]}</div>
+      </main>
+    </div>
+  );
+}
+
+
+

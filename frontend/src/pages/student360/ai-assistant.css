@@ -1,0 +1,16 @@
+/* ai-assistant.css - AI Assistant page styles */
+.s360-hint { color: #64748b; font-size: 0.85rem; }
+.ai-ask-form { display: flex; flex-direction: column; gap: 0.6rem; margin: 1rem 0; }
+.ai-ask-form select { padding: 0.5rem; border-radius: 8px; border: 1px solid #d1d5db; font-family: inherit; background: #fff; }
+.ai-ask-form textarea { padding: 0.7rem; border-radius: 8px; border: 1px solid #d1d5db; font-family: inherit; resize: vertical; }
+.ai-ask-form button { align-self: flex-start; }
+.ai-result { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+.ai-meta { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.ai-badge { background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem; }
+.ai-badge.low { background: #fef3c7; color: #92400e; }
+.ai-badge.retrieval { background: #dbeafe; color: #1e40af; }
+.ai-latency { color: #64748b; font-size: 0.75rem; }
+.ai-answer { white-space: pre-wrap; font-family: inherit; line-height: 1.9; margin: 0 0 0.8rem; background: transparent; }
+.ai-sources h4 { margin: 0.4rem 0; font-size: 0.9rem; }
+.ai-sources ul { margin: 0; padding-inline-start: 1.2rem; font-size: 0.85rem; color: #475569; }
+.ai-disclaimer { color: #b45309; font-size: 0.8rem; margin-top: 0.8rem; border-top: 1px dashed #fcd34d; padding-top: 0.5rem; }

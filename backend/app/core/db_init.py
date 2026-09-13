@@ -9,8 +9,11 @@ from app.models import (
     ScheduleHistory,
     TermCourse,
     TeachingPreference,
-    TimePreference
+    TimePreference,
 )
+
+# import ماژول Student 360 برای ثبت مدل‌ها در metadata
+import app.models.student360  # noqa: F401
 
 def init_db():
     try:
