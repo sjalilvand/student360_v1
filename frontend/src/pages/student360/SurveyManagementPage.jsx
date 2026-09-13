@@ -88,3 +88,7 @@ export function SurveyManagementPage() {
     </div>
   );
 }
+
+
+export default SurveyManagementPage;
+
