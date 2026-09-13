@@ -1,4 +1,4 @@
-// Student 360 - Feedback hub v2 (searchable course picker, s360 design system).
+// Student 360 - Feedback hub v2.1 (student_id via query param).
 import { useEffect, useMemo, useState } from "react";
 import { Card, Disclaimer } from "./shared";
 
@@ -7,21 +7,22 @@ const HEADERS = () => ({
   "X-Student-Number": localStorage.getItem("s360_student_number") || "",
   "Content-Type": "application/json",
 });
-
 const TERMS = ["1405-1", "1404-2", "1404-1"];
 
 export default function StudentFeedbackHub() {
   const [tab, setTab] = useState("vote");
   const [courses, setCourses] = useState([]);
+  const [studentId, setStudentId] = useState(null);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState(null);   // {id, code, title}
+  const [picked, setPicked] = useState(null);
   const [term, setTerm] = useState(TERMS[0]);
   const [desc, setDesc] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // courses
   useEffect(() => {
     fetch(`${API_BASE}/api/courses/unique`, { headers: HEADERS() })
       .then((r) => r.json())
@@ -36,6 +37,17 @@ export default function StudentFeedbackHub() {
       .catch(() => setErr("خطا در دریافت لیست دروس"));
   }, []);
 
+  // resolve my DB id (once)
+  useEffect(() => {
+    fetch(`${API_BASE}/api/votes/me-id`, { headers: HEADERS() })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.student_id) setStudentId(j.student_id);
+        else setErr("شناسایی دانشجو ناموفق بود");
+      })
+      .catch(() => setErr("خطا در شناسایی دانشجو"));
+  }, []);
+
   const filtered = useMemo(() => {
     const qn = q.trim().toLowerCase();
     if (!qn) return courses.slice(0, 40);
@@ -45,14 +57,16 @@ export default function StudentFeedbackHub() {
   }, [courses, q]);
 
   async function submit(url, body) {
+    if (!studentId) { setErr("شناسه دانشجو هنوز آماده نیست - چند لحظه بعد دوباره"); return false; }
     setBusy(true); setErr(""); setMsg("");
     try {
-      const r = await fetch(url, { method: "POST", headers: HEADERS(),
-                                   body: JSON.stringify(body) });
+      const sep = url.includes("?") ? "&" : "?";
+      const r = await fetch(`${url}${sep}student_id=${studentId}`, {
+        method: "POST", headers: HEADERS(), body: JSON.stringify(body),
+      });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
-        const det = typeof j.detail === "string" ? j.detail
-          : JSON.stringify(j.detail || j);
+        const det = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail || j);
         throw new Error(det || ("HTTP " + r.status));
       }
       setMsg("✅ با موفقیت ثبت شد.");
@@ -66,15 +80,14 @@ export default function StudentFeedbackHub() {
   async function doVote(kind) {
     if (!picked) { setErr("اول درس را انتخاب کنید"); return; }
     const ok = await submit(`${API_BASE}/api/votes/`,
-      { course_id: picked.id, vote_type: kind, term, student_number: localStorage.getItem("s360_student_number") });
+      { course_id: picked.id, vote_type: kind, term });
     if (ok) setMsg(`✅ رأی «${kind === "like" ? "می‌خواهم" : "ارائه شود"}» برای ${picked.title} ثبت شد.`);
   }
 
   async function doPropose() {
     if (!picked) { setErr("اول درس را انتخاب کنید"); return; }
     const ok = await submit(`${API_BASE}/api/proposals/`,
-      { term, course_ids: [picked.id], description: desc,
-        student_number: localStorage.getItem("s360_student_number") });
+      { term, course_ids: [picked.id], description: desc });
     if (ok) { setMsg("✅ پیشنهاد شما ثبت شد و در صف بررسی کارشناس است."); setDesc(""); }
   }
 
@@ -92,9 +105,7 @@ export default function StudentFeedbackHub() {
                 onClick={() => setTab("rating")}>⭐ امتیاز کلاس</button>
       </div>
 
-      {(msg || err) && (
-        <div className={err ? "s360-error" : "hub-ok"}>{err || msg}</div>
-      )}
+      {(msg || err) && <div className={err ? "s360-error" : "hub-ok"}>{err || msg}</div>}
 
       {tab !== "rating" && (
         <Card title="1️⃣ انتخاب درس (جستجو کنید)">
@@ -115,7 +126,6 @@ export default function StudentFeedbackHub() {
               </div>
             )}
           </div>
-
           <div className="s360-form-row" style={{ marginTop: ".6rem" }}>
             <select value={term} onChange={(e) => setTerm(e.target.value)}>
               {TERMS.map((t) => <option key={t} value={t}>ترم {t}</option>)}
@@ -128,9 +138,9 @@ export default function StudentFeedbackHub() {
       {tab === "vote" && (
         <Card title="2️⃣ رأی شما درباره این درس">
           <div className="hub-actions">
-            <button className="hub-btn like" disabled={busy}
+            <button className="hub-btn like" disabled={busy || !studentId}
                     onClick={() => doVote("like")}>👍 این درس را می‌خواهم</button>
-            <button className="hub-btn req" disabled={busy}
+            <button className="hub-btn req" disabled={busy || !studentId}
                     onClick={() => doVote("request")}>📌 ارائه‌اش را درخواست می‌کنم</button>
           </div>
         </Card>
@@ -141,7 +151,7 @@ export default function StudentFeedbackHub() {
           <textarea rows={3} placeholder="چرا این درس باید ارائه شود؟ (اختیاری)"
                     value={desc} onChange={(e) => setDesc(e.target.value)} />
           <div className="hub-actions">
-            <button className="hub-btn like" disabled={busy}
+            <button className="hub-btn like" disabled={busy || !studentId}
                     onClick={doPropose}>📨 ثبت پیشنهاد</button>
           </div>
         </Card>
@@ -151,7 +161,7 @@ export default function StudentFeedbackHub() {
         <Card title="⭐ امتیازدهی به کلاس‌ها">
           <p className="s360-hint">
             امتیازدهی به کلاس‌های برگزارشده پس از نهایی‌شدن برنامه هفتگی فعال می‌شود
-            (نیازمند شناسه کلاس از برنامه ریزی). در این پایلوت هنوز فعال نیست.
+            (نیازمند شناسه کلاس از ماژول برنامه‌ریزی).
           </p>
         </Card>
       )}
